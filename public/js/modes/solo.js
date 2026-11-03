@@ -216,18 +216,18 @@
     G.say(t('say.aiThinking'), 'think');
     var started = Date.now();
     askAI(c.tier, c.spec, c.aiRows, function (guess) {
-      if (c.dead || c.over || cur !== c) return;
+      if (c.dead || c.over || cur !== c || c.paused) return;
       var wait = Math.max(0, 700 - (Date.now() - started));
       aiTimer = setTimeout(function () {
-        if (c.dead || c.over || cur !== c) return;
+        if (c.dead || c.over || cur !== c || c.paused) return;
         var r = Core.evaluate(c.mySecret, guess);
         var n = c.aiRows.length + 1;
         c.aiRows.push({ n: n, guess: guess, a: r.a, b: r.b });
         G.feedback(r.a, r.b);
         G.setCounter(counterText(n, c.limit));
         refresh(true);
-        if (r.a === 4) { finish(c.mode === 'aiGuess' ? 'aiSolved' : 'aiWin'); return; }
         if (c.mode === 'aiGuess') {
+          if (r.a === 4) { finish('aiSolved'); return; }
           if (c.limit && n >= c.limit) { finish('aiFailed'); return; }
           G.say(t('say.aiGot', { a: r.a, b: r.b }), r.a + r.b >= 3 ? 'surprise' : 'idle');
           aiTimer = setTimeout(aiTurn, 650);
@@ -393,6 +393,7 @@
     if (!cur || cur.over) return;
     var paused = cur;
     clearTimeout(aiTimer);
+    paused.paused = true;
     var wasEnabled = G.enabled;
     G.setInput(false);
     K.Modal({
@@ -403,6 +404,7 @@
         { label: t('res.home'), kind: 'ghost', icon: 'home', onClick: function () { paused.leaving = true; stop(); app().show('home'); } }
       ],
       onClose: function () {
+        paused.paused = false;
         if (cur !== paused || paused.over || paused.leaving || paused.restarting) return;
         if (wasEnabled) G.setInput(true);
         if ((paused.mode === 'aiGuess' && paused.phase === 'watch') || (paused.mode === 'duel' && paused.phase === 'play' && paused.turn === 1)) aiTurn();
