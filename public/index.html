@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF4E0">
+<title>密碼鎖 1A2B｜免費線上猜數字・字母・圖案</title>
+<!--SEO:HEAD-->
+<script>window.GAME_ANALYTICS_CONFIG={"measurement_id":"G-PG79WZK8QY","game_id":"guess-ab","page_location":"https://pjh-eric.github.io/guess-ab/"};</script>
+<meta name="description" data-i18n-content="doc.desc" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
+<link rel="canonical" href="https://pjh-eric.github.io/guess-ab/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="密碼鎖 1A2B｜免費線上猜數字・字母・圖案">
+<meta property="og:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
+<meta property="og:url" content="https://pjh-eric.github.io/guess-ab/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="密碼鎖 1A2B｜免費線上猜數字・字母・圖案">
+<meta name="twitter:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"密碼鎖 1A2B","url":"https://pjh-eric.github.io/guess-ab/","description":"免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","genre":"益智","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"},"isPartOf":{"@type":"WebSite","url":"https://pjh-eric.github.io/game-lobby/"}}</script>
+<!--SEO:END-->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/latency.css">
+<link rel="stylesheet" href="css/server-outage.css">
+<script src="js/server-outage.js"></script>
+</head>
+<body>
+<div id="app" data-screen="boot" data-side="closed">
+  <header id="topbar" class="topbar">
+    <div class="top-left">
+      <a id="btn-lobby" class="pill-btn lobby-pill" href="#" hidden><span class="pill-ico" data-icon="back"></span><span data-i18n="top.lobby">遊戲大廳</span></a>
+      <button id="btn-back" class="icon-btn" type="button" hidden data-i18n-attr="aria-label=top.back;title=top.back"><span data-icon="back"></span></button>
+      <button id="btn-side" class="icon-btn" type="button" hidden aria-expanded="false" data-i18n-attr="aria-label=top.side;title=top.side"><span data-icon="panel"></span><i id="side-badge" class="badge" hidden>0</i></button>
+    </div>
+    <div class="top-title" id="top-title"></div>
+    <div class="top-right">
+      <span class="lat-slot"></span>
+      <button id="btn-pause" class="icon-btn" type="button" hidden data-i18n-attr="aria-label=top.pause;title=top.pause"><span data-icon="pause"></span></button>
+      <button id="btn-lang" class="icon-btn" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label=top.lang;title=top.lang"><span data-icon="globe"></span></button>
+      <button id="btn-settings" class="icon-btn" type="button" aria-haspopup="dialog" data-i18n-attr="aria-label=top.settings;title=top.settings"><span data-icon="gear"></span></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="scr-home" class="screen scroll" aria-labelledby="home-title"></section>
+    <section id="scr-solo" class="screen scroll"></section>
+    <section id="scr-setup" class="screen scroll"></section>
+    <section id="scr-levels" class="screen"></section>
+    <section id="scr-stats" class="screen scroll"></section>
+    <section id="scr-help" class="screen scroll"></section>
+    <section id="scr-lobby" class="screen scroll"></section>
+    <section id="scr-room" class="screen"></section>
+    <section id="scr-game" class="screen">
+      <div id="side-backdrop" class="side-backdrop" hidden></div>
+      <aside id="side" class="side" data-i18n-attr="aria-label=side.aria">
+        <div class="side-head"><h2 class="side-title" data-i18n="side.summary">對局資訊</h2>
+          <button id="side-close" class="icon-btn small" type="button" data-i18n-attr="aria-label=common.close"><span data-icon="close"></span></button></div>
+        <div id="summary" class="summary scroll"></div>
+        <section id="chatbox" class="chatbox" hidden data-i18n-attr="aria-label=chat.title">
+          <h2 class="side-title small" id="chat-title" data-i18n="chat.title">聊天室</h2>
+          <ul id="chat-list" class="chat-list scroll" aria-live="polite"></ul>
+          <div id="chat-quick" class="chat-quick"></div>
+          <form id="chat-form" class="chat-form" autocomplete="off">
+            <label class="input-wrap"><input id="chat-input" type="text" maxlength="200" data-i18n-attr="placeholder=chat.ph;aria-label=chat.ph"></label>
+            <button type="submit" class="btn small primary icon-only" data-i18n-attr="aria-label=chat.send;title=chat.send"><span data-icon="send"></span></button>
+          </form>
+        </section>
+      </aside>
+      <div class="g-center" id="g-center">
+        <div class="safe" id="safe">
+          <div class="safe-top">
+            <div class="mascot" id="mascot" aria-hidden="true"></div>
+            <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+            <div class="counter" id="counter"></div>
+          </div>
+          <div class="timer" id="timer" hidden><i></i></div>
+          <div class="slots" id="slots" role="group" data-i18n-attr="aria-label=game.slots"></div>
+          <p class="input-note" id="input-note" aria-live="polite"></p>
+        </div>
+        <div class="pad" id="pad">
+          <div class="keys scroll" id="keys" role="group" data-i18n-attr="aria-label=game.keys"></div>
+          <div class="pad-actions">
+            <button type="button" class="btn ghost" id="k-clear" data-i18n-attr="aria-label=game.clear;title=game.clearKey"><span data-icon="trash"></span><span data-i18n="game.clear">清除</span></button>
+            <button type="button" class="btn ghost" id="k-back" data-i18n-attr="aria-label=game.back;title=game.backKey"><span data-icon="backspace"></span><span data-i18n="game.back">退格</span></button>
+            <button type="button" class="btn primary" id="k-submit" data-i18n-attr="title=game.submitKey"><span data-icon="enter"></span><span id="k-submit-text" data-i18n="game.submit">送出</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="g-right" id="g-right">
+        <div class="hist-box">
+          <div class="tabs" id="hist-tabs" role="tablist"></div>
+          <ol class="history scroll" id="history" aria-live="polite"></ol>
+        </div>
+        <div class="notes-box" id="notes-box">
+          <h3 class="box-title"><span data-icon="pencil"></span><span data-i18n="notes.title">筆記板</span>
+            <button type="button" class="link-btn" id="notes-reset" data-i18n="notes.reset">全部清掉</button></h3>
+          <div class="notes scroll" id="notes" role="group" data-i18n-attr="aria-label=notes.title"></div>
+        </div>
+      </div>
+      <nav class="g-tabs" id="g-tabs" role="tablist">
+        <button type="button" role="tab" data-gt="play" aria-selected="true"><span data-icon="lock"></span><span data-i18n="gt.play">開鎖</span></button>
+        <button type="button" role="tab" data-gt="hist" aria-selected="false"><span data-icon="book"></span><span data-i18n="gt.hist">歷史</span><i class="badge" id="gt-hist-badge" hidden></i></button>
+        <button type="button" role="tab" data-gt="notes" aria-selected="false"><span data-icon="pencil"></span><span data-i18n="gt.notes">筆記</span></button>
+      </nav>
+      <div id="result-layer" class="result-layer" hidden></div>
+    </section>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <div id="boot" class="boot" role="status"><div class="boot-lock"></div><p>…</p></div>
+  </main>
+</div>
+
+<script src="js/analytics.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/locales.js"></script>
+<script src="js/locales-hans.js"></script>
+<script src="js/config.js"></script>
+<script src="js/lobby-link.js"></script>
+<script src="js/core/core.js"></script>
+<script src="js/core/spec-table.js"></script>
+<script src="js/core/levels-meta.js"></script>
+<script src="js/core/levels.js"></script>
+<script src="js/core/ai.js"></script>
+<script src="js/art/registry.js"></script>
+<script src="js/art/icons.js"></script>
+<script src="js/art/mascot.js"></script>
+<script src="js/art/avatars.js"></script>
+<script src="js/art/digits.js"></script>
+<script src="js/art/letters.js"></script>
+<script src="js/art/gems.js"></script>
+<script src="js/art/pack-food.js"></script>
+<script src="js/art/pack-fruit.js"></script>
+<script src="js/art/pack-wear.js"></script>
+<script src="js/art/pack-home.js"></script>
+<script src="js/art/pack-go.js"></script>
+<script src="js/art/pack-learn.js"></script>
+<script src="js/art/pack-play.js"></script>
+<script src="js/art/pack-animal.js"></script>
+<script src="js/art/pack-flag.js"></script>
+<script src="js/art/pack-space.js"></script>
+<script src="js/art/pack-tw.js"></script>
+<script src="js/art/pack-landmark.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/latency.js"></script>
+<script src="js/online.js"></script>
+<script src="js/ui/kit.js"></script>
+<script src="js/ui/game.js"></script>
+<script src="js/ui/result.js"></script>
+<script src="js/modes/solo.js"></script>
+<script src="js/modes/online-ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
