@@ -476,8 +476,8 @@
         return { rank: x.rank, name: x.name, ai: x.ai, avatar: s ? s.avatar : 0, me: x.seat === you.seat && you.role === 'player', info: x.solved ? t('race.solvedN', { n: x.solvedN }) : x.out && x.out !== 'limit' ? t('race.out.' + x.out) : t('race.best', { a: x.bestA, b: x.bestB }) };
       });
       if (you.role === 'player' && myRow) {
-        o.kind = myRow.rank === 1 ? 'win' : 'rank';
-        o.title = myRow.rank === 1 ? t('res.raceWin') : t('res.rank', { n: myRow.rank });
+        o.kind = myRow.rank === 1 && myRow.solved ? 'win' : 'rank';
+        o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : t('res.lastStanding')) : t('res.rank', { n: myRow.rank });
         o.mood = myRow.rank === 1 ? 'happy' : myRow.solved ? 'idle' : 'shake';
         o.lines.push(myRow.solved ? t('res.guesses', { n: myRow.solvedN }) : t('res.notSolved'));
         root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: !!myRow.solved, guesses: myRow.solved ? myRow.solvedN : 0 });

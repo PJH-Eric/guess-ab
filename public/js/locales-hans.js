@@ -250,6 +250,7 @@
 "res.myGuesses": "我猜了 {n} 次",
 "res.aiGuesses": "电脑猜了 {n} 次",
 "res.raceWin": "第一名！最先打开！",
+"res.lastStanding": "其他人都离开了，你是第一名",
 "res.rank": "第 {n} 名",
 "res.raceOver": "这局结束了",
 "res.oppWin": "{n} 先猜中了",
