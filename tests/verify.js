@@ -218,7 +218,7 @@ test('程式用到的字串在繁中／簡中／英文都有', () => {
   for (const m of html.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach(p => keys.add(p.split('=')[1]));
   /* 動態組出來的 key */
   ['tier.0', 'tier.1', 'tier.2', 'tier.3', 'notes.st0', 'notes.st3', 'mode.guess', 'mode.aiGuess', 'mode.duel', 'mode.level', 'mode.daily', 'mode.raceOnline', 'mode.duelOnline',
-    'say.greetGuess', 'say.greetDaily', 'say.watching', 'say.greetOnline', 'hint.posAsk', 'hint.hasAsk', 'hint.attrAsk', 'hint.hasOne', 'hint.hasMany',
+    'say.greetGuess', 'say.greetDaily', 'say.watching', 'say.greetOnline', 'say.greetDuel', 'hint.posAsk', 'hint.hasAsk', 'hint.attrAsk', 'hint.hasOne', 'hint.hasMany',
     'attr.odd', 'attr.even', 'attr.vowel', 'attr.consonant', 'attr.warm', 'attr.cool', 'rs.waiting', 'rs.setup', 'rs.playing', 'rs.finished',
     'race.out.limit', 'race.out.left', 'race.out.idle', 'race.out.resign', 'res.reason.left', 'res.reason.idle', 'res.reason.resign', 'closed.no_players', 'closed.kicked',
     'tierHelp.g0', 'tierHelp.g3', 'tierHelp.a0', 'tierHelp.a3', 'create.raceHelp', 'create.duelHelp', 'net.connecting', 'net.retrying',

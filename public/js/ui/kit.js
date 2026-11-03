@@ -55,7 +55,9 @@
     var el = h('<div class="toast ' + (kind || '') + '" role="status"></div>');
     el.textContent = text;
     box.appendChild(el);
-    while (box.children.length > 3) box.firstChild.remove();
+    /* 同樣的訊息不重複疊；最多同時 2 則 */
+    Array.prototype.forEach.call(box.children, function (c) { if (c !== el && c.textContent === text) c.remove(); });
+    while (box.children.length > 2) box.firstChild.remove();
     setTimeout(function () { el.classList.add('out'); setTimeout(function () { el.remove(); }, 300); }, ms || 2600);
   }
 

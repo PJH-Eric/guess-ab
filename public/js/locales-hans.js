@@ -190,6 +190,7 @@
 "say.greetDaily": "今天的题目来了，加油！",
 "say.greetSecret": "先设一组密码，再按「锁上」。",
 "say.greetOnline": "大家猜同一组密码，看谁先打开！",
+"say.greetDuel": "轮流猜对方的密码，先猜中的人赢！",
 "say.watching": "你正在观战，可以看所有人的猜测。",
 "say.win": "喀！打开了！",
 "say.out": "次数用完了…",

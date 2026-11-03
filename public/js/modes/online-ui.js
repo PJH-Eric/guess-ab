@@ -372,7 +372,7 @@
     if (key !== setupKey) {
       setupKey = key;
       var purpose = key.slice(-6) === 'secret' ? 'secret' : 'guess';
-      G.setup({ spec: spec, tier: null, purpose: purpose, onSubmit: onSubmit, greet: purpose === 'secret' ? t('say.greetSecret') : t(you.role === 'spectator' ? 'say.watching' : 'say.greetOnline'), notes: you.role === 'player' });
+      G.setup({ spec: spec, tier: null, purpose: purpose, onSubmit: onSubmit, greet: purpose === 'secret' ? t('say.greetSecret') : t(you.role === 'spectator' ? 'say.watching' : r.mode === 'duel' ? 'say.greetDuel' : 'say.greetOnline'), notes: you.role === 'player' });
     }
     var tabs = [], canInput = false, why = '', counter = '', deadline = 0, total = 1;
     if (r.mode === 'race') {
@@ -561,7 +561,7 @@
   }
   function onToast(m) {
     var key = 'toast.' + m.code;
-    if (!root.I18N.has(key)) return;
+    if (!root.I18N.has(key) || m.code === 'setSecret') return;
     var p = Object.assign({}, m.params);
     if (m.code === 'duelStart' && room) p.first = playerName(m.params.first);
     K.toast(t(key, p), m.code === 'idleWarn' || m.code === 'dcLoss' || m.code === 'idleOut' ? 'warn' : '');
