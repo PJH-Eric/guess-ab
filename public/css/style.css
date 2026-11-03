@@ -640,7 +640,9 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 }
 /* 平板直向（寬度夠）：歷史與鍵盤同時可見 */
 @media (min-width: 600px) and (max-width: 899px) and (orientation: portrait) and (min-height: 820px) {
-  #scr-game { grid-template-rows: minmax(0, 1.4fr) minmax(0, 0.7fr) auto; }
+  #scr-game { grid-template-rows: minmax(0, 1.65fr) minmax(0, 0.6fr) auto; }
+  .wheel-ghost { max-width: min(44px, 4vh); }
+  .recent:not([hidden]) { display: none; }
   #app[data-gt="play"] .g-right, #app[data-gt="hist"] .g-right { display: flex; grid-row: 2; }
   #app[data-gt="play"] .g-right { flex-direction: row; }
   #app[data-gt="play"] .g-right .hist-box { flex: 1 1 60%; }

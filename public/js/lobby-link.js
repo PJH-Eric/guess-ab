@@ -16,6 +16,8 @@
   try { stored = root.sessionStorage.getItem('guess-ab.lobby') || ''; } catch (e) {}
 
   var url = resolve(query, stored, root.document ? root.document.referrer : '');
+  /* 正式站上沒有來源資訊時，預設回到遊戲小小島大廳 */
+  if (!url && root.location && root.location.hostname === 'pjh-eric.github.io') url = 'https://pjh-eric.github.io/game-lobby/';
   if (url && root.location && url.indexOf(root.location.origin + root.location.pathname) === 0) url = null;
   try { if (url && query) root.sessionStorage.setItem('guess-ab.lobby', url); } catch (e) {}
 

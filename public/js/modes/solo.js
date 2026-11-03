@@ -130,7 +130,7 @@
     if (o.mode === 'level') {
       var info = Levels.level(o.level.tier, o.level.L);
       c.info = info; c.spec = info.spec; c.tier = info.tier; c.limit = info.limit; c.par = info.par; c.boss = info.boss;
-      c.hintsLeft = info.hints; c.title = t('mode.level') + ' ' + t('level.n', { n: info.L }); c.sub = tierName(info.tier) + (info.boss ? '・' + t('level.boss') : '');
+      c.hintsLeft = info.hints; c.title = t('level.title', { n: info.L }); c.sub = tierName(info.tier) + (info.boss ? '・' + t('level.boss') : '');
     } else if (o.mode === 'daily') {
       var d = Levels.dailyInfo(Core.taipeiDate());
       c.info = d; c.spec = d.spec; c.tier = 2; c.limit = d.limit; c.par = d.par; c.date = d.date;
@@ -414,7 +414,7 @@
 
   function init() {
     G = root.GameView; K = root.Kit;
-    root.I18N.onChange(function () { if (cur && document.getElementById('app').getAttribute('data-screen') === 'game' && cur.mode) { cur.title = cur.mode === 'level' ? t('mode.level') + ' ' + t('level.n', { n: cur.info.L }) : t('mode.' + cur.mode); app().setTitle(cur.title); refresh(true); } });
+    root.I18N.onChange(function () { if (cur && document.getElementById('app').getAttribute('data-screen') === 'game' && cur.mode) { cur.title = cur.mode === 'level' ? t('level.title', { n: cur.info.L }) : t('mode.' + cur.mode); app().setTitle(cur.title); refresh(true); } });
   }
 
   root.Solo = { init: init, start: start, stop: stop, pause: pause, get active() { return cur && !cur.dead ? cur : null; }, askAI: askAI };

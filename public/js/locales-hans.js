@@ -181,6 +181,7 @@
 "daily.practice": "练习（今天已完成）",
 "daily.practiceNote": "今天已经完成过，这局是练习，不会改变连胜。",
 "level.n": "第 {n} 关",
+"level.title": "闯关・第 {n} 关",
 "level.boss": "头目关",
 "level.locked": "还没解锁",
 "level.progress": "已过 {c} / 100 关・共 {s} 颗星",
