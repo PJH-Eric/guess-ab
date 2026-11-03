@@ -198,6 +198,7 @@ svg.sym { display: block; width: 100%; height: 100%; }
 .create-form { border: 0; box-shadow: none; padding: 0; background: none; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field.row2 > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .f-label { font-weight: 900; font-size: .95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .f-label .link-btn { margin-left: auto; }
 .f-help { color: var(--ink-soft); font-size: .82rem; font-weight: 600; }
@@ -381,9 +382,9 @@ svg.av-mini { width: 28px; height: 28px; }
 .pad { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow); padding: 10px; position: relative; }
 .pad.locked::after { content: attr(data-why); position: absolute; inset: 0; border-radius: 16px; background: rgba(255, 251, 243, .78); display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; font-weight: 900; font-size: 1.05rem; pointer-events: none; }
 .pad.locked[data-why=""]::after { content: none; }
-.keys { --cols: 5; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; align-content: start; flex: 1 1 auto; min-height: 0; padding: 2px 6px 6px 2px; }
+.keys { --cols: 5; --ks: 64px; display: grid; grid-template-columns: repeat(var(--cols), var(--ks)); grid-auto-rows: var(--ks); justify-content: center; gap: 8px; align-content: start; flex: 1 1 auto; min-height: 0; padding: 2px 6px 6px 2px; }
 .key {
-  position: relative; aspect-ratio: 1; width: 100%; max-width: 92px; justify-self: center; min-height: 0; border-radius: 14px; border: 2.5px solid var(--ink); background: #fff;
+  position: relative; width: var(--ks); height: var(--ks); min-height: 0; border-radius: 14px; border: 2.5px solid var(--ink); background: #fff;
   box-shadow: 0 4px 0 var(--ink); padding: 10%; display: flex; align-items: center; justify-content: center; transition: transform .06s, box-shadow .06s;
   touch-action: manipulation; user-select: none;
 }
@@ -440,7 +441,7 @@ svg.av-mini { width: 28px; height: 28px; }
 .h-empty { color: var(--ink-soft); text-align: center; padding: 18px 6px; font-weight: 700; }
 .notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; padding: 4px 6px 4px 4px; min-height: 0; }
 .note { position: relative; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--line); background: #fff; padding: 5px; min-height: 40px; }
-.note-mark { position: absolute; bottom: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); display: none; align-items: center; justify-content: center; color: #fff; }
+.note-mark { position: absolute; bottom: 1px; right: 1px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); display: none; align-items: center; justify-content: center; color: #fff; }
 .note-mark svg.ico { width: 11px; height: 11px; }
 .note[data-st="1"] { border-color: var(--green); background: #E9F8EC; } .note[data-st="1"] .note-mark { display: flex; background: var(--green); }
 .note[data-st="2"] { border-color: var(--red); background: #F4F1EC; } .note[data-st="2"] .note-mark { display: flex; background: var(--red); } .note[data-st="2"] svg.sym { opacity: .4; }
@@ -450,6 +451,10 @@ svg.av-mini { width: 28px; height: 28px; }
 .color-assist .note[data-st="3"], .color-assist .key[data-note="3"] { border-style: dotted; border-width: 4px; }
 .color-assist .fb-a { color: #8A5A00; }
 .g-tabs { display: none; }
+.recent { display: none; list-style: none; margin: 0; padding: 0; flex-direction: column; gap: 4px; flex: none; }
+.recent .h-row { padding: 3px 6px; font-size: .8rem; }
+.recent .h-sym { width: 24px; height: 24px; }
+.recent .h-fb { flex-direction: row; align-items: center; gap: 4px; }
 .side-backdrop { position: fixed; inset: 0; background: rgba(38, 64, 94, .35); z-index: 39; }
 
 /* ---------- 結算 overlay ---------- */
@@ -621,6 +626,8 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
   #app[data-gt="notes"] .hist-box { display: none; }
   #app[data-gt="notes"] .notes-box { flex: 1 1 auto; max-height: none; }
   .g-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; grid-row: 2; }
+  .recent:not([hidden]) { display: flex; }
+  .toasts { top: auto; bottom: calc(68px + var(--safe-b)); flex-direction: column-reverse; }
   .g-tabs button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 14px; border: 2.5px solid var(--ink); background: var(--paper); font-weight: 900; box-shadow: 0 3px 0 var(--ink); position: relative; }
   .g-tabs button[aria-selected="true"] { background: var(--gold); }
   .g-tabs .badge { top: -6px; right: 6px; }
@@ -694,7 +701,7 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
   :root { --top-h: 46px; }
   .icon-btn { width: 38px; height: 38px; }
   .page-title { font-size: 1.25rem; margin: 2px 0 8px; }
-  #scr-game { grid-template-columns: minmax(0, 1fr) minmax(0, 0.5fr); grid-template-rows: minmax(0, 1fr) auto; padding-top: 4px; gap: 6px 8px; }
+  #scr-game { grid-template-columns: minmax(0, 1fr) minmax(0, 0.42fr); grid-template-rows: minmax(0, 1fr) auto; padding-top: 4px; gap: 6px 8px; }
   .g-center { grid-row: 1; grid-column: 1; flex-direction: row; gap: 8px; }
   .g-center .safe { flex: 1 1 54%; display: flex; flex-direction: column; padding: 6px 8px; min-width: 0; }
   .g-center .pad { flex: 1 1 46%; min-height: 0; min-width: 0; padding: 6px; gap: 6px; }
@@ -715,8 +722,9 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
   .wheel-arrow { height: 14px; }
   .wheel-cur { max-width: min(90px, 22vh); }
   .input-note { display: none; }
+  .recent:not([hidden]) { display: none; }
   .keys { gap: 5px; }
-  .key { border-radius: 10px; border-width: 2px; box-shadow: 0 2px 0 var(--ink); max-width: 56px; }
+  .key { border-radius: 10px; border-width: 2px; box-shadow: 0 2px 0 var(--ink); }
   .pad-actions .btn { min-height: 36px; font-size: .82rem; gap: 4px; padding: 4px; }
   .pad-actions .btn span:not([data-icon]):not(#k-submit-text) { display: none; }
   .home { justify-content: flex-start; }

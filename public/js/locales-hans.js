@@ -122,6 +122,7 @@
 "game.count": "第 {n} 次",
 "game.countOf": "第 {n} / {max} 次",
 "game.noHistory": "还没有猜测，先猜一组看看！",
+"game.recent": "最近的猜测",
 "game.timeoutRow": "逾时，这次没猜到",
 "game.timeLeft": "剩下 {s} 秒",
 "game.setSecret": "设定你的密码",

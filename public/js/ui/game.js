@@ -108,13 +108,38 @@
     var box = $('keys');
     var n = cfg.spec.n;
     box.innerHTML = '';
-    box.style.setProperty('--cols', String(colsFor(n)));
+    fitCols();
     for (var i = 0; i < n; i++) {
       var b = K.h('<button type="button" class="key" data-i="' + i + '">' + K.sym(cfg.spec, i, 'key-sym') +
         '<span class="key-cap">' + K.esc(keyLabel(i)) + '</span><span class="key-note" aria-hidden="true"></span><span class="key-used" aria-hidden="true"></span></button>');
       b.setAttribute('aria-label', K.symName(cfg.spec, i));
       box.appendChild(b);
     }
+  }
+  /** 依鍵盤區實際大小算出「每顆鍵最大」的排法：符號鍵越大越好按，但不超過 92px、不小於手指大小 */
+  function fitCols() {
+    if (!cfg) return;
+    var box = $('keys');
+    var n = cfg.spec.n;
+    var cs = getComputedStyle(box);
+    var gap = parseFloat(cs.columnGap) || 6;
+    var W = box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - 6;
+    var H = box.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0) - 4;
+    if (W <= 0) return;
+    var best = { s: 0, cols: Math.min(n, 5) };
+    for (var cols = 1; cols <= n; cols++) {
+      var rows = Math.ceil(n / cols);
+      var s = Math.min(92, (W - gap * (cols - 1)) / cols, H > 60 ? (H - gap * (rows - 1)) / rows : 92);
+      if (s > best.s + 0.5) best = { s: s, cols: cols };
+    }
+    /* 空間太小時改成可捲動：鍵至少 40px */
+    var size = Math.floor(best.s);
+    var cols2 = best.cols;
+    if (size < 40) { size = 40; cols2 = Math.max(1, Math.floor((W + gap) / (40 + gap))); }
+    /* 欄數平均分配每一排 */
+    var r2 = Math.ceil(n / cols2); cols2 = Math.ceil(n / r2);
+    box.style.setProperty('--cols', String(cols2));
+    box.style.setProperty('--ks', size + 'px');
   }
   function colsFor(n) {
     if (n <= 6) return 6;
@@ -349,6 +374,14 @@
     }
     if (nearBottom || tab.rows.length !== tab._lastLen) list.scrollTop = list.scrollHeight;
     tab._lastLen = tab.rows.length;
+    /* 窄版「開鎖」分頁：鍵盤上方顯示最近 3 次猜測，不用切到歷史分頁也看得到 */
+    var mine = tabs.filter(function (x) { return x.focus; })[0] || tabs[0];
+    var rec = $('recent');
+    if (rec) {
+      var rows = mine ? mine.rows.filter(function (r) { return !r.hint; }).slice(-3) : [];
+      rec.innerHTML = rows.map(function (r) { return rowHtml(r, -1, mine.spec || cfg.spec).replace(' recallable', ''); }).join('');
+      rec.hidden = !rows.length;
+    }
     /* 手機分頁的未讀提示 */
     var total = tabs.reduce(function (s, x) { return s + x.rows.length; }, 0);
     var badge = $('gt-hist-badge');
@@ -526,6 +559,8 @@
     K = root.Kit;
     $ = function (id) { return doc.getElementById(id); };
     bind();
+    if (root.ResizeObserver) new ResizeObserver(function () { fitCols(); }).observe($('keys'));
+    else root.addEventListener('resize', fitCols);
     root.I18N.onChange(function () { if (cfg) { buildKeys(); buildNotes(); renderSlots(); renderHistory(); $('k-submit-text').textContent = cfg.purpose === 'secret' ? t('game.lock') : t('game.submit'); } });
   }
 
