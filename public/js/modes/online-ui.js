@@ -175,7 +175,7 @@
         else act2 = '<button type="button" class="icon-btn small" data-kick="' + esc(s.id) + '" aria-label="' + esc(t('room.kick', { n: s.name })) + '" title="' + esc(t('room.kick', { n: s.name })) + '">' + K.icon('kick') + '</button>';
       }
       return '<li class="seat' + (isMe ? ' me' : '') + (s.ready || s.ai ? ' ready' : '') + '"><span class="seat-av">' + root.GuessArt.svg('avatars', s.avatar || 0, 'av-svg') + '</span>' +
-        '<span class="seat-name">' + esc(s.name) + (isMe ? ' <small>(' + esc(t('room.you')) + ')</small>' : '') + '</span><span class="seat-badges">' + badges + '</span><span class="seat-act">' + act2 + '</span></li>';
+        '<span class="seat-name" title="' + esc(s.name) + '">' + esc(s.name) + (isMe ? ' <small>(' + esc(t('room.you')) + ')</small>' : '') + '</span><span class="seat-badges">' + badges + '</span><span class="seat-act">' + act2 + '</span></li>';
     }).join('');
   }
   function settingsHtml() {
