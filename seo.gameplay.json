@@ -1,0 +1,5 @@
+{
+  "zh-Hant": { "name": "密碼鎖 1A2B", "summary": "猜出 4 個符號的密碼：數字、字母、寶石、可愛圖案、國旗、台灣小吃與世界地標都能猜。", "modes": ["我猜電腦", "電腦猜我", "互相出題", "闖關 400 關", "每日挑戰", "線上競速", "觀戰", "邀請連結"], "controls": "點符號自動填格、填滿自動送出；電腦可直接打字，↑↓ 翻出之前的猜測" },
+  "zh-Hans": { "name": "密码锁 1A2B", "summary": "猜出 4 个符号的密码：数字、字母、宝石、可爱图案、国旗、台湾小吃与世界地标都能猜。", "modes": ["我猜电脑", "电脑猜我", "互相出题", "闯关 400 关", "每日挑战", "线上竞速", "观战", "邀请链接"], "controls": "点符号自动填格、填满自动送出；电脑可直接打字，↑↓ 翻出之前的猜测" },
+  "en": { "name": "Lock 1A2B", "summary": "Crack a 4-symbol code made of numbers, letters, gems, cute pictures, flags, Taiwanese snacks or world landmarks.", "modes": ["Crack the computer", "Computer cracks me", "Duel", "400 levels", "Daily challenge", "Online race", "Spectate", "Invite link"], "controls": "Tap a symbol to fill the next slot and auto-submit; type on a keyboard, ↑↓ recalls earlier guesses" }
+}
