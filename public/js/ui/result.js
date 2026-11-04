@@ -34,7 +34,7 @@
     if (o.lines && o.lines.length) html += '<ul class="res-lines">' + o.lines.map(function (l) { return '<li>' + K.esc(l) + '</li>'; }).join('') + '</ul>';
     if (o.streak != null) html += '<p class="res-streak">' + K.icon('flame') + '<span>' + K.esc(t('res.streak', { n: o.streak })) + '</span></p>';
     if (o.ranking && o.ranking.length) {
-      html += '<ol class="res-rank scroll">' + o.ranking.map(function (r) {
+      html += '<ol class="res-ranks scroll">' + o.ranking.map(function (r) {
         return '<li class="' + (r.me ? 'me' : '') + '"><b class="rk">' + r.rank + '</b>' + (r.avatar != null ? root.GuessArt.svg('avatars', r.avatar, 'rk-av') : '') +
           '<span class="rk-name">' + K.esc(r.name) + '</span><span class="rk-info">' + K.esc(r.info) + '</span></li>';
       }).join('') + '</ol>';
