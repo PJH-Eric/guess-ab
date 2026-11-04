@@ -595,6 +595,8 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .room-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .room-head .page-title { margin: 6px 0; }
 .room-tip { margin: 2px 0 12px; color: var(--ink-soft); font-weight: 700; }
+.room-start-hint { margin: 10px 0 0; color: var(--ink-soft); font-weight: 700; font-size: .95rem; }
+.room-start-hint.ok { color: var(--green); }
 /* 欄數由 online-ui.js 的 fitSeats() 依寬度與座位數算出（--seat-cols），每列一樣多，不留單獨一格 */
 .seats { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(var(--seat-cols, 2), minmax(0, 1fr)); gap: 10px; }
 .seat { display: grid; grid-template-columns: 52px 1fr auto; grid-template-areas: "av name act" "av badges act"; gap: 2px 8px; align-items: center; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 18px; padding: 10px; box-shadow: var(--shadow); min-height: 78px; }

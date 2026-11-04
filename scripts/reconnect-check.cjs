@@ -9,7 +9,7 @@ const BASE = 'http://localhost:3100/';
   await A.evaluate(() => Net.send({ type: 'create', mode: 'duel', name: 'A', settings: { tier: 1, cs: 'gems', turnSec: 30 } })); await A.waitForTimeout(400);
   const id = await A.evaluate(() => OnlineUI.room.id);
   await B.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'B', want: 'player' }), id); await B.waitForTimeout(400);
-  for (const p of [A, B]) await p.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(500);
+  await B.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(300); await A.evaluate(() => Net.send({ type: 'start' })); await A.waitForTimeout(500);
   for (const p of [A, B]) await p.evaluate(() => { const g = OnlineUI.room.game; Net.send({ type: 'secret', code: g.players[OnlineUI.room.you.seat].myDefault }); });
   await A.waitForTimeout(600);
   const before = await A.evaluate(() => ({ seat: OnlineUI.room.you.seat, turn: OnlineUI.room.game.turn, dl: OnlineUI.room.game.deadline }));

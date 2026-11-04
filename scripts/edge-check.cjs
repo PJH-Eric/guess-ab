@@ -5,7 +5,7 @@ const BASE = 'http://localhost:3101/';
   const b = await chromium.launch();
   let A, B;
   const mk = async (w, h, lang) => { const c = await b.newContext({ viewport: { width: w, height: h } }); await c.addInitScript(l => localStorage.setItem('guess-ab:v1', JSON.stringify({ ver: 8, lang: l, musicOn: false, sfxOn: false })), lang); const p = await c.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); await p.goto(BASE); await p.waitForTimeout(300); await p.evaluate(() => OnlineUI.enterLobby()); await p.waitForTimeout(700); return p; };
-  const room = async (A, B, mode, settings) => { await A.evaluate(o => Net.send({ type: 'create', mode: o.mode, name: 'A', settings: o.settings }), { mode, settings }); await A.waitForTimeout(400); const id = await A.evaluate(() => OnlineUI.room.id); await B.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'B', want: 'player' }), id); await B.waitForTimeout(400); for (const p of [A, B]) await p.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(600); };
+  const room = async (A, B, mode, settings) => { await A.evaluate(o => Net.send({ type: 'create', mode: o.mode, name: 'A', settings: o.settings }), { mode, settings }); await A.waitForTimeout(400); const id = await A.evaluate(() => OnlineUI.room.id); await B.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'B', want: 'player' }), id); await B.waitForTimeout(400); await B.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(300); await A.evaluate(() => Net.send({ type: 'start' })); await A.waitForTimeout(600); };
   A = await mk(390, 844, 'zh-Hant'); B = await mk(1180, 820, 'en');
   if (process.env.SKIPRACE) {} else {
   /* 競速：3 分鐘＝9 秒，A 猜一次、B 不猜 → 時間到 A 第一 */

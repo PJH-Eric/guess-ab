@@ -10,7 +10,7 @@ const BASE = 'http://localhost:3100/';
   const id = await A.evaluate(() => OnlineUI.room.id);
   await B.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'Bob', want: 'player' }), id);
   await S.evaluate(id => Net.send({ type: 'join', roomId: id, name: '观众', want: 'spectator' }), id); await A.waitForTimeout(500);
-  await A.evaluate(() => Net.send({ type: 'ready', value: true })); await B.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(800);
+  await B.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(300); await A.evaluate(() => Net.send({ type: 'start' })); await A.waitForTimeout(800);
   /* B 暴力猜到中 */
   const solved = await B.evaluate(async () => {
     const n = OnlineUI.room.game.spec.n, all = [];

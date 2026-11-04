@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   await A.evaluate(() => Net.send({ type: 'create', mode: 'race', name: 'A', settings: { tier: 4, cs: 'mix', minutes: 5 } })); await A.waitForTimeout(400);
   const id = await A.evaluate(() => OnlineUI.room.id);
   await B.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'B' }), id); await B.waitForTimeout(400);
-  for (const p of [A, B]) await p.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(800);
+  await B.evaluate(() => Net.send({ type: 'ready', value: true })); await A.waitForTimeout(300); await A.evaluate(() => Net.send({ type: 'start' })); await A.waitForTimeout(800);
   await measure(A, '線上競速（倒數中）');
   await A.evaluate(() => { GameView.setTimer(0); }); await measure(A, '關掉上方倒數條');
   await A.evaluate(() => { Kit.clockHtml = () => '<b>-</b>'; }); await A.waitForTimeout(1100); await measure(A, '再拿掉側欄時鐘');

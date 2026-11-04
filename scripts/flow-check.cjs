@@ -99,7 +99,7 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   await p.evaluate(() => Net.send({ type: 'create', mode: 'duel', name: 'A', settings: { tier: 0, cs: 'digits', turnSec: 15 } })); await p.waitForTimeout(500);
   const id = await p.evaluate(() => OnlineUI.room.id);
   await q.waitForTimeout(500); await q.evaluate(id => Net.send({ type: 'join', roomId: id, name: 'B', want: 'player' }), id); await q.waitForTimeout(400);
-  await p.evaluate(() => Net.send({ type: 'ready', value: true })); await q.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(600);
+  await q.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(300); await p.evaluate(() => Net.send({ type: 'start' })); await p.waitForTimeout(600);
   const tnum = await p.$eval('#timer .timer-num', e => e.textContent);
   assert.ok(/^\d{2}\.\d{2}$/.test(tnum), '設密碼倒數格式 ' + tnum);
   const t1 = await p.$eval('#timer .timer-num', e => e.textContent); await p.waitForTimeout(80); const t2 = await p.$eval('#timer .timer-num', e => e.textContent);

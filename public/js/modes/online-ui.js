@@ -167,7 +167,7 @@
       var isMe = s.id === you.id;
       var badges = '';
       if (s.id === r.hostId) badges += '<i class="b-host" title="' + esc(t('room.host')) + '">' + K.icon('crown') + '</i>';
-      if (r.status !== 'playing' && r.status !== 'setup') badges += s.ready ? '<i class="b-ready">' + K.icon('check') + esc(t('room.ready')) + '</i>' : '<i class="b-wait">' + esc(t('room.notReady')) + '</i>';
+      if (r.status !== 'playing' && r.status !== 'setup' && s.id !== r.hostId) badges += s.ready ? '<i class="b-ready">' + K.icon('check') + esc(t('room.ready')) + '</i>' : '<i class="b-wait">' + esc(t('room.notReady')) + '</i>';
       if (!s.connected) badges += '<i class="b-dc">' + K.icon('timer') + esc(t('room.dc')) + '</i>';
       var act2 = '';
       if (host && !isMe && r.status !== 'playing' && r.status !== 'setup') act2 = '<button type="button" class="icon-btn small" data-kick="' + esc(s.id) + '" aria-label="' + esc(t('room.kick', { n: s.name })) + '" title="' + esc(t('room.kick', { n: s.name })) + '">' + K.icon('kick') + '</button>';
@@ -204,6 +204,10 @@
     if (!room) { app().show('lobby'); return; }
     var r = room, you = r.you;
     var ready = you.role === 'player' && r.seats[you.seat] && r.seats[you.seat].ready;
+    /* 開局改由房主按：至少兩人，且房主以外的玩家都準備好 */
+    var people = r.seats.filter(Boolean);
+    var canStart = people.length >= 2 && people.every(function (s) { return s.id === r.hostId || s.ready; });
+    var startHint = you.role !== 'player' ? '' : you.host ? t(people.length < 2 ? 'room.startNeedPlayers' : canStart ? 'room.startReady' : 'room.startWaitReady') : ready ? t('room.waitHost') : '';
     /* 側欄（含聊天）是共用的節點：重畫房間前先把它移回遊戲畫面，免得被 innerHTML 一起清掉 */
     var side = $('side');
     if (side && $('scr-room').contains(side)) $('scr-game').insertBefore(side, $('g-center'));
@@ -219,11 +223,14 @@
       '<p class="room-tip">' + esc(t(you.role === 'spectator' ? 'room.tipSpec' : r.mode === 'duel' ? 'room.tipDuel' : 'room.tipRace')) + '</p>' +
       '<ul class="seats">' + seatsHtml() + '</ul>' +
       '<div class="room-actions">' +
-      (you.role === 'player' ? '<button type="button" class="btn ' + (ready ? '' : 'primary') + ' big" id="rm-ready">' + K.icon(ready ? 'cross' : 'check') + '<span>' + esc(ready ? t('room.unready') : t('room.imReady')) + '</span></button>' +
+      (you.role === 'player' ? (you.host
+          ? '<button type="button" class="btn primary big" id="rm-start"' + (canStart ? '' : ' disabled') + '>' + K.icon('play') + '<span>' + esc(t('room.start')) + '</span></button>'
+          : '<button type="button" class="btn ' + (ready ? '' : 'primary') + ' big" id="rm-ready">' + K.icon(ready ? 'cross' : 'check') + '<span>' + esc(ready ? t('room.unready') : t('room.imReady')) + '</span></button>') +
         '<button type="button" class="btn ghost" id="rm-stand">' + K.icon('eye') + '<span>' + esc(t('room.stand')) + '</span></button>' : '') +
       (you.role === 'spectator' ? '<button type="button" class="btn primary" id="rm-sit"' + (r.seats.some(function (s) { return !s; }) ? '' : ' disabled') + '>' + K.icon('user') + '<span>' + esc(t('room.sit')) + '</span></button>' : '') +
       (r.status === 'finished' ? '<button type="button" class="btn ghost" id="rm-result">' + K.icon('trophy') + '<span>' + esc(t('room.lastResult')) + '</span></button>' : '') +
       '<button type="button" class="btn danger ghost" id="rm-leave">' + K.icon('exit') + '<span>' + esc(t('room.leave')) + '</span></button></div>' +
+      (startHint ? '<p class="room-start-hint' + (you.host && canStart ? ' ok' : '') + '" role="status">' + esc(startHint) + '</p>' : '') +
       '<div class="room-panels"><section class="panel"><h2 class="box-title">' + K.icon('gear') + esc(t('room.settings')) + (you.host ? '' : '<small>' + esc(t('room.hostOnly')) + '</small>') + '</h2>' + settingsHtml() + '</section>' +
       '<section class="panel"><h2 class="box-title">' + K.icon('link') + esc(t('room.invite')) + '</h2>' + inviteHtml() + '</section>' +
       '<section class="panel"><h2 class="box-title">' + K.icon('eye') + esc(t('room.specs', { n: r.specs.length, max: r.specMax })) + '</h2>' +
@@ -273,6 +280,7 @@
     var r = room;
     var q = function (sel) { return $('scr-room').querySelector(sel); };
     var rd = q('#rm-ready'); if (rd) rd.onclick = function () { var s = r.seats[r.you.seat]; Net.send({ type: 'ready', value: !(s && s.ready) }); root.Sound.play('key'); };
+    var stt = q('#rm-start'); if (stt) stt.onclick = function () { Net.send({ type: 'start' }); root.Sound.play('key'); };
     var stb = q('#rm-stand'); if (stb) stb.onclick = function () { Net.send({ type: 'stand' }); };
     var sit = q('#rm-sit'); if (sit) sit.onclick = function () { Net.send({ type: 'sit' }); };
     $('scr-room').querySelectorAll('[data-sit]').forEach(function (b) { b.onclick = function () { Net.send({ type: 'sit' }); }; });
@@ -459,6 +467,8 @@
           '<span class="rl-name">' + esc(playerName(i)) + '</span>' +
           '<span class="rl-prog" aria-label="' + esc(t('race.progAria', { n: p.count, a: p.bestA, b: p.bestB })) + '"><span class="rl-bar">' + bar + '</span><small>' + esc(t('race.countN', { n: p.count })) + '</small></span>' + st + '</li>';
       }).join('') + '</ul>';
+      var meP = you.role === 'player' && g.players[you.seat];
+      if (r.status === 'playing' && meP && !meP.out && !meP.solved && g.players.length > 1 && g.players.every(function (p, i) { return !p || i === you.seat || p.out === 'left' || p.out === 'idle'; }) && g.players.filter(Boolean).length > 1) html += '<p class="note warn">' + K.icon('users') + esc(t('race.soloOn')) + '</p>';
       if (g.finishAt && r.status === 'playing') html += '<p class="note warn">' + K.icon('timer') + esc(t('race.finishing', { n: playerName(g.winnerSeat) })) + '</p>';
     } else {
       var p0 = g.players[0], p1 = g.players[1];
@@ -467,6 +477,7 @@
         return '<li class="' + (i === you.seat ? 'me' : '') + (g.turn === i && r.status === 'playing' ? ' turn' : '') + '">' + (s ? root.GuessArt.svg('avatars', s.avatar || 0, 'av-mini') : K.icon('user')) + '<span class="rl-name">' + esc(playerName(i)) + (g.first === i ? ' <small>' + esc(t('duel.first')) + '</small>' : '') + '</span>' +
           '<span class="rl-prog"><small>' + (p ? (r.status === 'setup' ? esc(p.locked ? t('duel.locked') : t('duel.setting')) : t('duel.guesses', { n: p.count })) : '') + '</small></span></li>';
       }).join('') + '</ul>';
+      if (r.status === 'playing' && you.role === 'player' && g.players[1 - you.seat] && g.players[1 - you.seat].out) html += '<p class="note warn">' + K.icon('users') + esc(t('duel.oppLeft')) + '</p>';
       var mineSec = you.role === 'player' && g.players[you.seat] && g.players[you.seat].mySecret;
       if (mineSec) html += '<div class="my-secret"><span>' + esc(t('sum.mySecret')) + '</span><div class="sec-code">' + mineSec.map(function (v) { return '<span class="h-sym">' + K.sym(g.spec, v, 'hist-sym') + '</span>'; }).join('') + '</div></div>';
     }
@@ -532,7 +543,7 @@
     }
     if (o.kind === 'win') root.Sound.play('win'); else if (o.kind === 'lose') root.Sound.play('lose');
     o.again = you.role === 'player'
-      ? { label: t('res.againReady'), onClick: function () { Net.send({ type: 'ready', value: true }); wantGame = false; app().show('room'); } }
+      ? { label: t('res.againReady'), onClick: function () { if (!r.you.host) Net.send({ type: 'ready', value: true }); wantGame = false; app().show('room'); } }
       : { note: t('res.specNoAgain') };
     o.room = { onClick: function () { wantGame = false; app().show('room'); } };
     o.home = { onClick: function () { Net.send({ type: 'leave' }); room = null; forgetRoom(); setupKey = ''; Net.close(); app().show('home'); } };

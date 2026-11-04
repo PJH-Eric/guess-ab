@@ -288,7 +288,7 @@ test('競速：玩家看不到答案與別人的猜測內容，觀戰者看得�
   const w = fakeWorld(), a = w.P('a'), b = w.P('b'), s = w.P('s');
   const room = w.hub.create(a, { mode: 'race' });
   w.hub.join(b, { roomId: room.id }); w.hub.join(s, { roomId: room.id, want: 'spectator' });
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   assert.strictEqual(room.status, 'playing');
   const spec = room.game.spec, secret = room.game.secret.slice();
   let wrong = codeFor(spec, 1); if (wrong.join() === secret.join()) wrong = codeFor(spec, 2);
@@ -315,7 +315,7 @@ test('競速：不限次數；總時長到了依最好 A→B→步數排名；�
   const w = fakeWorld(), a = w.P('a'), b = w.P('b'), c = w.P('c');
   const room = w.hub.create(a, { mode: 'race', settings: { minutes: 3, tier: 0 } });
   w.hub.join(b, { roomId: room.id }); w.hub.join(c, { roomId: room.id });
-  [a, b, c].forEach(p => w.hub.setReady(p, true));
+  [a, b, c].forEach(p => w.hub.setReady(p, true)); w.hub.start(a);
   const g = room.game, secret = g.secret;
   assert.strictEqual(g.endsAt - w.now(), 3 * 60000);
   /* A 猜 20 次都不中也不會被擋 */
@@ -340,7 +340,7 @@ test('互相出題：設密碼階段有預設密碼、時間到自動鎖上；�
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
   const room = w.hub.create(a, { mode: 'duel', settings: { turnSec: 15 } });
   w.hub.join(b, { roomId: room.id });
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   assert.strictEqual(room.status, 'setup');
   const spA = w.last('a', 'room').room.game, spB = w.last('b', 'room').room.game;
   const defA = spA.players[0].myDefault;
@@ -367,7 +367,7 @@ test('互相出題：設密碼階段有預設密碼、時間到自動鎖上；�
 test('互相出題：逾時跳到對方、不是自己的回合不能猜、15 回合比最好 A/B', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
   const room = w.hub.create(a, { mode: 'duel', settings: { turnSec: 15 } }); w.hub.join(b, { roomId: room.id });
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   const spec = room.game.spec;
   w.hub.setSecret(a, codeFor(spec, 3)); w.hub.setSecret(b, codeFor(spec, 4));
   const g = room.game, P = [a, b], first = g.first, second = 1 - first;
@@ -394,7 +394,7 @@ test('互相出題：逾時跳到對方、不是自己的回合不能猜、15 �
 test('防狂送：250ms 內第二次猜測被擋；聊天保留 <3 這類符號、過濾控制字元', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
   const room = w.hub.create(a, { mode: 'race' }); w.hub.join(b, { roomId: room.id });
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   const g = room.game, c1 = codeFor(g.spec, 1), c2 = codeFor(g.spec, 2);
   const s = g.secret.join(); const pick = [c1, c2, codeFor(g.spec, 3)].filter(c => c.join() !== s);
   w.hub.guess(a, pick[0]); w.adv(100); w.hub.guess(a, pick[1]);
@@ -417,7 +417,7 @@ test('競速選「隨機」字元集時，伺服器每局會抽出實際的字�
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
   const room = w.hub.create(a, { mode: 'race', settings: { cs: 'random', tier: 4 } });
   w.hub.join(b, { roomId: room.id });
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   assert.ok(Core.charset(room.game.spec.cs));
   assert.ok(room.game.spec.n >= 8 && room.game.spec.n <= 10);
   assert.strictEqual(room.game.spec.rep, true);

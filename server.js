@@ -76,6 +76,7 @@ function handle(person, msg) {
     case 'sit': hub.sit(person); sync(person); return;
     case 'stand': hub.stand(person); sync(person); return;
     case 'ready': hub.setReady(person, msg.value); return;
+    case 'start': hub.start(person); return;
     case 'secret': hub.setSecret(person, Array.isArray(msg.code) ? msg.code.slice(0, 4) : null); return;
     case 'guess': hub.guess(person, Array.isArray(msg.code) ? msg.code.slice(0, 4) : null); return;
     case 'resign': hub.resign(person); return;

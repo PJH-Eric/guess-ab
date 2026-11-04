@@ -57,7 +57,15 @@ function client(port, name) {
   S.send({ type: 'join', roomId: id, name: '丙', want: 'spectator' });
   await S.wait(m => m.type === 'room' && m.room.you.role === 'spectator');
 
-  A.send({ type: 'ready', value: true }); B.send({ type: 'ready', value: true });
+  /* 開局由房主按：還沒準備時按開始會被擋；準備好也不會自動開；非房主按開始沒用 */
+  A.send({ type: 'start' });
+  assert.strictEqual((await A.wait(m => m.type === 'error')).code, 'start_not_ready', '對手沒準備不能開始');
+  B.send({ type: 'ready', value: true });
+  await A.wait(m => m.type === 'room' && m.room.seats[1] && m.room.seats[1].ready);
+  B.send({ type: 'start' });
+  await new Promise(r => setTimeout(r, 300));
+  assert.strictEqual(A.room().status, 'waiting', '全員準備好也不會自動開局、非房主不能開局');
+  A.send({ type: 'start' });
   const setup = await A.wait(m => m.type === 'room' && m.room.status === 'setup');
   const n = setup.room.game.spec.pool.length;
   assert.ok(n >= 4 && n <= 5 && setup.room.game.spec.rep === false, '幼幼：4～5 個項目、不重複');
@@ -104,8 +112,55 @@ function client(port, name) {
   const rooms = await (await fetch('http://127.0.0.1:' + port + '/api/rooms')).json();
   assert.strictEqual(rooms.rooms.length, 0);
 
-  for (const c of [A, B, S, D]) c.ws.close();
+  /* 互相出題：對手中途離開，不會結束，留下的人自己繼續猜到猜中 */
+  const E = await client(port, '戊'), F = await client(port, '己');
+  E.send({ type: 'create', mode: 'duel', name: '戊', settings: { tier: 0, cs: 'pack-fruit', turnSec: 30 } });
+  const re = await E.wait(m => m.type === 'room');
+  F.send({ type: 'join', roomId: re.room.id, token: re.room.invite.token, name: '己', want: 'player' });
+  await F.wait(m => m.type === 'room' && m.room.you.role === 'player');
+  F.send({ type: 'ready', value: true });
+  await E.wait(m => m.type === 'room' && m.room.seats[1] && m.room.seats[1].ready);
+  E.send({ type: 'start' });
+  await E.wait(m => m.type === 'room' && m.room.status === 'setup');
+  E.send({ type: 'secret', code: [0, 1, 2, 3] });
+  F.send({ type: 'secret', code: [3, 2, 1, 0] });
+  const pe = await E.wait(m => m.type === 'room' && m.room.status === 'playing');
+  F.send({ type: 'leave' });
+  const solo = await E.wait(m => m.type === 'room' && m.room.game && m.room.game.players[1].out === 'left');
+  assert.strictEqual(solo.room.status, 'playing', '對手離開後不會自動結束');
+  assert.strictEqual(solo.room.game.turn, 0, '輪到留下來的人');
+  E.send({ type: 'guess', code: [0, 1, 2, 3] });
+  const g1 = await E.wait(m => m.type === 'room' && m.room.game && m.room.game.players[0].count === 1);
+  assert.strictEqual(g1.room.status, 'playing', '沒猜中可以繼續猜');
+  assert.strictEqual(g1.room.game.turn, 0, '對手不在，一直輪到自己');
+  await new Promise(r => setTimeout(r, 300));
+  E.send({ type: 'guess', code: [3, 2, 1, 0] });
+  const ef = await E.wait(m => m.type === 'room' && m.room.status === 'finished');
+  assert.strictEqual(ef.room.game.result.winnerSeat, 0);
+  assert.strictEqual(ef.room.game.result.reason, 'solved');
+  assert.strictEqual(ef.room.game.result.names[1], '己', '結算保留離開者名字');
+  void pe;
+  E.send({ type: 'leave' });
+
+  /* 搶答：其他人離開後，不會自動結束 */
+  const H = await client(port, '庚'), I = await client(port, '辛');
+  H.send({ type: 'create', mode: 'race', name: '庚', settings: { tier: 0, cs: 'pack-fruit', minutes: 3, cap: 2 } });
+  const rh = await H.wait(m => m.type === 'room');
+  I.send({ type: 'join', roomId: rh.room.id, token: rh.room.invite.token, name: '辛', want: 'player' });
+  await I.wait(m => m.type === 'room' && m.room.you.role === 'player');
+  I.send({ type: 'ready', value: true });
+  await H.wait(m => m.type === 'room' && m.room.seats[1] && m.room.seats[1].ready);
+  H.send({ type: 'start' });
+  await H.wait(m => m.type === 'room' && m.room.status === 'playing');
+  I.send({ type: 'leave' });
+  const rs = await H.wait(m => m.type === 'room' && m.room.game && m.room.game.players[1] && m.room.game.players[1].out === 'left');
+  assert.strictEqual(rs.room.status, 'playing', '搶答剩一人也不會自動結束');
+  await new Promise(r => setTimeout(r, 1200));
+  assert.strictEqual(H.room().status, 'playing', 'tick 之後仍在對局中');
+  H.send({ type: 'leave' });
+
+  for (const c of [A, B, S, D, E, F, H, I]) c.ws.close();
   server.close();
-  console.log('✓ 線上端對端測試全部通過（建房、邀請、觀戰、互相出題一局、密碼不外洩、觀戰頻道、撤銷邀請、空房關閉）');
+  console.log('✓ 線上端對端測試全部通過（建房、邀請、觀戰、互相出題一局、密碼不外洩、觀戰頻道、撤銷邀請、空房關閉、房主開局、對手離開後繼續猜）');
   process.exit(0);
 })().catch(err => { console.error('✗ 線上測試失敗：', err && err.stack || err); process.exit(1); });
