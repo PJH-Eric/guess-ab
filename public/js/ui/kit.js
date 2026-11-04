@@ -305,7 +305,13 @@
     layer = doc.createElement('div'); layer.id = 'sb-layer'; layer.setAttribute('aria-hidden', 'true');
     doc.body.appendChild(layer);
     scan(doc.body);
-    new MutationObserver(function (ms) { ms.forEach(function (m) { m.addedNodes.forEach(scan); }); schedule(); })
+    /* 倒數數字、倒數條、自訂捲軸本身每 10ms 會變，不需要重算捲軸（否則每個 tick 都把所有捲軸重算一次） */
+    function noisy(m) { var t = m.target.nodeType === 1 ? m.target : m.target.parentElement; return !!(t && t.closest && t.closest('.clk, .timer-row, #sb-layer')); }
+    new MutationObserver(function (ms) {
+      var hit = false;
+      ms.forEach(function (m) { if (noisy(m)) return; hit = true; m.addedNodes.forEach(scan); });
+      if (hit) schedule();
+    })
       .observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class', 'style', 'data-screen', 'data-side'] });
     root.addEventListener('resize', schedule);
     root.addEventListener('orientationchange', schedule);

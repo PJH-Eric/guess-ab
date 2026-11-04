@@ -352,9 +352,10 @@ svg.av-mini { width: 28px; height: 28px; }
 .timer { flex: 1 1 auto; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, .55); border: 2px solid var(--ink); overflow: hidden; }
 .timer i { display: block; height: 100%; background: var(--gold); transform-origin: left; }
 .timer-row.low .timer i { background: var(--red); }
-.timer-num { flex: none; min-width: 4.6em; text-align: center; font-weight: 900; font-size: .9rem; font-variant-numeric: tabular-nums; background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 8px; line-height: 1.5; }
+.timer-num { flex: none; contain: layout paint; will-change: transform; min-width: 4.6em; text-align: center; font-weight: 900; font-size: .9rem; font-variant-numeric: tabular-nums; background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 0 8px; line-height: 1.5; }
 .timer-row.low .timer-num { background: #FFE3DD; color: var(--red); border-color: var(--red); }
-.clk { font-variant-numeric: tabular-nums; }
+.clk { font-variant-numeric: tabular-nums; display: inline-block; contain: layout paint; will-change: transform; }
+.timer i { will-change: transform; }
 .slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(6px, 1.6vw, 14px); margin-top: 10px; position: relative; z-index: 1; }
 .wheel {
   position: relative; display: flex; flex-direction: column; align-items: center; border-radius: 18px; background: linear-gradient(#D7DEE6, #fff 30%, #fff 70%, #D7DEE6);
@@ -752,7 +753,7 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .seg[id$="-tier"] .seg-btn[data-v="4"][aria-checked="true"] { background: #7B5CC9; color: #fff; }
 
 /* 結算視窗開著時，提示移到頂端，不要蓋住結算按鈕 */
-body:has(#result-layer:not([hidden])) .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom: auto; flex-direction: column; }
+body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom: auto; flex-direction: column; }
 
 /* 手機橫向（高度很矮）：鎖與鍵盤左右並排，歷史在右 */
 @media (max-height: 520px) and (orientation: landscape) {

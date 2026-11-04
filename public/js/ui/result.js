@@ -46,6 +46,7 @@
     html += '</div>';
     layer.innerHTML = html;
     layer.hidden = false;
+    doc.body.classList.add('result-open');   // 讓提示移到上方（不用 :has，避免整頁樣式重算）
     layer.classList.remove('in'); void layer.offsetWidth; layer.classList.add('in');
     ['again', 'room', 'home'].forEach(function (k) {
       var b = layer.querySelector('[data-act="' + k + '"]');
@@ -77,6 +78,7 @@
     var layer = doc.getElementById('result-layer');
     if (layer.hidden) return;
     layer.hidden = true;
+    doc.body.classList.remove('result-open');
     layer.innerHTML = '';
     if (onKey) doc.removeEventListener('keydown', onKey, true);
     onKey = null;

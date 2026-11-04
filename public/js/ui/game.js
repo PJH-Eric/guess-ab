@@ -454,13 +454,15 @@
     var local = deadline - (offset || 0);      // 換成本機時間
     num.setAttribute('data-until', String(local));
     var bar = el.querySelector('.timer i');
-    var lastSec = -1;
+    var lastSec = -1, lastTxt = '', lastLow = null;
     function step() {
       var left = local - Date.now();
       var f = Math.max(0, Math.min(1, left / total));
-      bar.style.transform = 'scaleX(' + f + ')';
-      num.textContent = K.fmtTime(left);
-      el.classList.toggle('low', left < Math.min(10000, total * 0.2));
+      bar.style.transform = 'scaleX(' + f.toFixed(4) + ')';
+      var txt = K.fmtTime(left);
+      if (txt !== lastTxt) { lastTxt = txt; num.textContent = txt; }   // 只在數字真的變了才寫 DOM
+      var low = left < Math.min(10000, total * 0.2);
+      if (low !== lastLow) { lastLow = low; el.classList.toggle('low', low); }
       var sec = Math.max(0, Math.ceil(left / 1000));
       if (sec !== lastSec) { lastSec = sec; el.setAttribute('aria-label', t('game.timeLeft', { s: K.fmtTime(left) })); }
       if (left <= 0) clearInterval(timerTick);
