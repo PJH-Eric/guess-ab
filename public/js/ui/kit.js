@@ -40,12 +40,24 @@
   function symName(spec, i) { var it = symItem(spec, i); return it ? root.I18N.pick(it.n) : '?'; }
   /** 含重複的項目總數（顯示用） */
   function poolSize(spec) { return spec.size || spec.n; }
+  function isRepeatDigits(spec) { return spec.cs === 'digits' && spec.rep; }
   /**
-   * 項目池：可重複的局照次數展開（兩個 1 就畫兩個 1），下方再列一行重複對應「1 ×2」。
+   * 數字重複局合併為「1 ×2」；其他種類照次數展開，下方再列重複對應。
    * @param {string} [cls] 外框 class（例如 'big'）
    */
   function poolHtml(spec, cls) {
     var t = root.I18N.t;
+    if (isRepeatDigits(spec)) {
+      var digits = [];
+      for (var d = 0; d < spec.n; d++) {
+        var max = root.GuessCore.maxOf(spec, d);
+        var label = symName(spec, d) + '：' + t('pool.maxN', { n: max });
+        digits.push('<span class="pool-digit" role="img" aria-label="' + esc(label) + '">' +
+          '<span class="pool-sym' + (max > 1 ? ' rep' : '') + '" title="' + esc(symName(spec, d)) + '">' + sym(spec, d, 'pool-svg') + '</span>' +
+          (max > 1 ? '<b aria-hidden="true">×' + max + '</b>' : '') + '</span>');
+      }
+      return '<div class="pool digit-counts' + (cls ? ' ' + cls : '') + '">' + digits.join('') + '</div><p class="pool-help">' + esc(t('game.digitRepeatHelp')) + '</p>';
+    }
     var list = root.GuessCore.poolList(spec);
     var html = '<div class="pool' + (cls ? ' ' + cls : '') + '">' + list.map(function (i, k) {
       var again = k > 0 && list[k - 1] === i;
@@ -374,7 +386,7 @@
 
   root.Kit = {
     fmtTime: fmtTime, clockHtml: clockHtml, tickClocks: tickClocks,
-    esc: esc, h: h, icon: icon, sym: sym, symItem: symItem, symName: symName, poolSize: poolSize, poolHtml: poolHtml, specLine: specLine, csIcon: csIcon, toast: toast, Modal: Modal, menu: menu,
+    esc: esc, h: h, icon: icon, sym: sym, symItem: symItem, symName: symName, poolSize: poolSize, isRepeatDigits: isRepeatDigits, poolHtml: poolHtml, specLine: specLine, csIcon: csIcon, toast: toast, Modal: Modal, menu: menu,
     switchHtml: switchHtml, bindSwitch: bindSwitch, stepperHtml: stepperHtml, bindStepper: bindStepper,
     segHtml: segHtml, bindSeg: bindSeg, refreshScroll: schedule
   };

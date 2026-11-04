@@ -107,11 +107,13 @@
   function buildKeys() {
     var box = $('keys');
     var n = cfg.spec.n;
+    var repeatDigits = K.isRepeatDigits(cfg.spec);
+    box.classList.toggle('repeat-digits', repeatDigits);
     box.innerHTML = '';
     fitCols();
     for (var i = 0; i < n; i++) {
       var b = K.h('<button type="button" class="key" data-i="' + i + '">' + K.sym(cfg.spec, i, 'key-sym') +
-        '<span class="key-cap">' + K.esc(keyLabel(i)) + '</span><span class="key-note" aria-hidden="true"></span><span class="key-used" aria-hidden="true"></span>' + maxBadge(i) + '</button>');
+        '<span class="key-cap">' + K.esc(keyLabel(i)) + '</span><span class="key-note" aria-hidden="true"></span><span class="key-used" aria-hidden="true"></span>' + (repeatDigits ? '<span class="key-remaining" aria-hidden="true"></span>' : maxBadge(i)) + '</button>');
       b.setAttribute('aria-label', K.symName(cfg.spec, i) + maxLabel(i));
       box.appendChild(b);
     }
@@ -137,10 +139,11 @@
       /* 鍵越大越好；一樣大（例如都到上限）時選形狀最接近的，避免排成一長條 */
       if (s > best.s + 0.5 || (s >= best.s - 0.5 && fit < best.fit)) best = { s: s, cols: cols, fit: fit };
     }
-    /* 空間太小時改成可捲動：鍵至少 40px */
+    /* 數字次數標籤需要額外高度；放不下時沿用自訂捲動區。 */
+    var minSize = K.isRepeatDigits(cfg.spec) ? 64 : 40;
     var size = Math.floor(best.s);
     var cols2 = best.cols;
-    if (size < 40) { size = 40; cols2 = Math.max(1, Math.floor((W + gap) / (40 + gap))); }
+    if (size < minSize) { size = minSize; cols2 = Math.max(1, Math.floor((W + gap) / (minSize + gap))); }
     /* 欄數平均分配每一排 */
     var r2 = Math.ceil(n / cols2); cols2 = Math.ceil(n / r2);
     box.style.setProperty('--cols', String(cols2));
@@ -213,12 +216,19 @@
       var i = Number(b.getAttribute('data-i'));
       var c = used[i] || 0;
       var cap = Core.maxOf(cfg.spec, i);
+      var repeatDigits = K.isRepeatDigits(cfg.spec);
       b.classList.toggle('used', !cfg.spec.rep && c > 0 || !!cfg.spec.cnt && c >= cap);
       b.classList.toggle('used-rep', cfg.spec.rep && c > 0 && !(cfg.spec.cnt && c >= cap));
       /* 有次數上限的項目顯示「1/2」，角標就先收起來 */
-      b.querySelector('.key-used').textContent = cfg.spec.rep && c > 0 ? (cfg.spec.cnt && cap > 1 ? c + '/' + cap : '×' + c) : '';
+      b.querySelector('.key-used').textContent = !repeatDigits && cfg.spec.rep && c > 0 ? (cfg.spec.cnt && cap > 1 ? c + '/' + cap : '×' + c) : '';
       b.classList.toggle('has-used', c > 0);
-      b.disabled = !enabled;
+      if (repeatDigits) {
+        var remaining = Math.max(0, cap - c);
+        var label = t(!remaining ? 'game.digitExhausted' : c ? 'game.digitRemaining' : 'game.digitAvailable', { n: remaining });
+        b.querySelector('.key-remaining').textContent = label;
+        b.setAttribute('aria-label', K.symName(cfg.spec, i) + '：' + label);
+      }
+      b.disabled = !enabled || repeatDigits && c >= cap;
       b.setAttribute('aria-pressed', c > 0 ? 'true' : 'false');
     });
     var full = input.every(function (v) { return v != null; });
@@ -257,6 +267,8 @@
     if (!enabled || !cfg) return;
     recallIdx = -1;
     var cntNow = input.filter(function (v) { return v === i; }).length;
+    /* 數字重複局用完即停用；實體鍵盤也不會意外刪除已填數字。 */
+    if (K.isRepeatDigits(cfg.spec) && cntNow >= Core.maxOf(cfg.spec, i)) return;
     if (!cfg.spec.rep || cfg.spec.cnt && cntNow >= cfg.spec.cnt[i]) {
       /* 不重複，或已經用到項目池裡的個數：再點一下＝從最後放的那一格拿掉 */
       var at = input.lastIndexOf(i);

@@ -58,7 +58,7 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   await p.evaluate(() => App.openSetup());
   await p.click('#f-tier .seg-btn[data-v="4"]'); await p.waitForTimeout(150);
   const prevTxt = await p.$eval('.setup-info span', e => e.textContent);
-  const prevPool = await p.$$eval('.pool.big .pool-sym', e => e.length);
+  const prevPool = await p.$eval('.pool.big', el => el.querySelectorAll('.pool-sym').length + [...el.querySelectorAll('.pool-digit b')].reduce((sum, b) => sum + Number(b.textContent.slice(1)) - 1, 0));
   assert.ok(prevPool >= 8 && prevPool <= 10 && /可重複/.test(prevTxt), prevTxt);
   await p.click('#f-reroll'); await p.waitForTimeout(100);
   const pool2 = await p.$$eval('.pool.big .pool-sym', e => e.map(x => x.title).join());
@@ -66,13 +66,15 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   const gp = await p.evaluate(() => ({ n: Solo.active.spec.n, rep: Solo.active.spec.rep, hints: Solo.active.hintsLeft, tier: Solo.active.tier }));
   assert.ok(gp.rep && gp.hints === 0 && gp.tier === 4, JSON.stringify(gp));
   const pool3 = await p.$$eval('#summary .pool .pool-sym', e => e.map(x => x.title).join());
-  /* 可重複：項目池列出重複的項目、下方有重複對應、鍵盤角標＝次數上限 */
+  /* 數字重複局合併項目池並標示剩餘次數，其他種類保留展開與角標。 */
   const rp = await p.evaluate(() => {
     const sp = Solo.active.spec, reps = sp.cnt.filter(x => x > 1).length;
-    return { reps, map: document.querySelectorAll('#summary .pool-map-it').length, max: [...document.querySelectorAll('#keys .key-max')].map(e => e.textContent).join(),
+    return { reps, digits: sp.cs === 'digits', n: sp.n, labels: document.querySelectorAll('#keys .key-remaining').length, map: document.querySelectorAll('#summary .pool-map-it').length, max: [...document.querySelectorAll('#keys .key-max')].map(e => e.textContent).join(),
       want: sp.cnt.filter(x => x > 1).map(x => '×' + x).join(), size: sp.size, shown: document.querySelectorAll('#summary .pool .pool-sym').length };
   });
-  assert.ok(rp.reps > 0 && rp.map === rp.reps && rp.max === rp.want && rp.shown === rp.size, JSON.stringify(rp));
+  assert.ok(rp.reps > 0, JSON.stringify(rp));
+  if (rp.digits) assert.ok(rp.map === 0 && rp.labels === rp.n && rp.shown === rp.n, JSON.stringify(rp));
+  else assert.ok(rp.map === rp.reps && rp.max === rp.want && rp.shown === rp.size, JSON.stringify(rp));
   assert.strictEqual(pool3, pool2, '開始後項目池＝預覽');
   ok('開局設定：神話 8～10 個可重複、沒有提示、題目與預覽一致');
 
@@ -89,7 +91,7 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   for (const d of digits) await p.keyboard.press('Digit' + d);
   await p.waitForFunction(() => Solo.active.rows.length === 1, null, { timeout: 3000 }).catch(() => {});
   assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 1, '合法猜測自動送出 ' + digits.join(''));
-  ok('鍵盤：直打自動送出、超過項目池個數的那一下會拿掉');
+  ok('鍵盤：直打自動送出、超過項目池上限不會送出');
 
   /* 6 統計：局數累加、各難度表 */
   await p.evaluate(() => App.show('stats'));
