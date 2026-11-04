@@ -70,7 +70,8 @@
     var busy = r.status !== 'waiting';
     return '<li class="room-row">' +
       '<span class="rr-cs">' + (r.cs === 'random' ? K.icon('shuffle', 'rr-svg') : K.csIcon(r.cs, 'rr-svg')) + '</span>' +
-      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(t('tier.' + r.tier)) + '・' + esc(t('cs.' + r.cs)) + '</small></span>' +
+      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(t('tier.' + r.tier)) + '・' + esc(r.cs === 'random' ? t('csg.random') : t('cs.' + r.cs)) +
+        (r.mode === 'race' && r.minutes ? '・' + esc(t('room.minN', { n: r.minutes })) : r.mode === 'duel' && r.turnSec ? '・' + esc(t('room.secPerTurn', { n: r.turnSec })) : '') + '</small></span>' +
       '<span class="rr-meta"><i>' + K.icon('users') + r.players + '/' + r.cap + '</i><i>' + K.icon('eye') + r.spectators + '</i><i class="st st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</i></span>' +
       '<span class="rr-act">' +
       '<button type="button" class="btn small primary" data-join="' + esc(r.id) + '"' + (full || busy ? ' disabled' : '') + '>' + esc(t('lobby.join')) + '</button>' +

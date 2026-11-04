@@ -472,6 +472,7 @@
 "help.tiers": "难度分成幼幼、简单、普通、困难、神话。项目数和会不会重复都由难度随机决定，越难项目越多、越常重复（同一个最多 3 次）。",
 "room.minutes": "总时长",
 "room.minN": "{n} 分钟",
+"room.secPerTurn": "每回合 {n} 秒",
 "room.rounds": "回合上限",
 "room.roundsN": "{n} 回合",
 "room.tierHelp": "项目数与重复由难度随机决定",
