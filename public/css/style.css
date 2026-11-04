@@ -836,3 +836,8 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
 @media (min-width: 1900px) {
   #main { max-width: 1760px; margin-left: auto; margin-right: auto; width: 100%; }
 }
+
+/* 說明頁的難度對照表：窄螢幕也一眼看完四欄 */
+.tier-tbl { width: 100%; min-width: 0; font-size: .88rem; }
+.tier-tbl th, .tier-tbl td { padding: 6px 4px; text-align: center; white-space: nowrap; }
+.tier-tbl .tier-badge { padding: 1px 8px; font-size: .8rem; }

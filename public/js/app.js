@@ -301,11 +301,23 @@
       sec('enter', 'help.inputT', '<ul class="tips"><li>' + esc(t('help.in1')) + '</li><li>' + esc(t('help.in2')) + '</li><li>' + esc(t('help.in3')) + '</li><li>' + esc(t('help.in4')) + '</li><li>' + esc(t('help.in5')) + '</li></ul>') +
       sec('pencil', 'help.notesT', '<p>' + esc(t('help.notes')) + '</p>') +
       sec('question', 'help.hintT', '<p>' + esc(t('help.hint')) + '</p>') +
-      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li><li>' + esc(t('help.tiers')) + '</li></ul>') +
+      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li></ul>') +
+      sec('star', 'help.tierT', '<p>' + esc(t('help.tiers')) + '</p>' + tierTable()) +
       sec('users', 'help.onlineT', '<ul class="tips"><li>' + esc(t('help.o1')) + '</li><li>' + esc(t('help.o2')) + '</li><li>' + esc(t('help.o3')) + '</li></ul>') +
       '<div class="page-actions"><button type="button" class="btn primary big" id="help-go">' + K.icon('play') + '<span>' + esc(t('help.go')) + '</span></button></div></div>';
     $('scr-help').innerHTML = html;
     $('help-go').onclick = function () { openSetup(); };
+  }
+  /** 五段難度對照表（直接從規則常數產生，規則改了表也會跟著改） */
+  function tierTable() {
+    var Core = root.GuessCore;
+    var rows = '';
+    for (var k = 0; k < Core.TIERS; k++) {
+      var r = Core.TIER_N[k], p = Core.TIER_REP[k], h = Levels.HINTS[k];
+      rows += '<tr><th><span class="tier-badge t' + k + '">' + esc(t('tier.' + k)) + '</span></th><td>' + (r[0] === r[1] ? r[0] : r[0] + '～' + r[1]) + '</td><td>' +
+        esc(p <= 0 ? t('help.repNever') : p >= 1 ? t('help.repAlways') : t('help.repSome', { p: Math.round(p * 100) })) + '</td><td>' + (h === Infinity ? '∞' : h) + '</td></tr>';
+    }
+    return '<div class="table-wrap scroll"><table class="tbl tier-tbl"><thead><tr><th>' + esc(t('setup.tier')) + '</th><th>' + esc(t('help.colN')) + '</th><th>' + esc(t('help.colRep')) + '</th><th>' + esc(t('help.colHint')) + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
   function sec(ico, title, body) { return '<section class="panel help-sec"><h2 class="box-title">' + K.icon(ico) + esc(t(title)) + '</h2>' + body + '</section>'; }
 
