@@ -11,7 +11,7 @@ process.stdout.write(JSON.stringify(self.LOCALE_HANT));
 hant = json.loads(src)
 cc = opencc.OpenCC('t2s')
 # 少數用詞依大陸習慣調整
-FIX = {'连结': '链接', '伺服器': '服务器', '萤幕': '屏幕', '滑鼠': '鼠标', '预设': '默认', '游戏大厅': '游戏大厅'}
+FIX = {'连结': '链接', '伺服器': '服务器', '萤幕': '屏幕', '滑鼠': '鼠标', '预设': '默认', '游戏大厅': '游戏大厅', '设定': '设置', '线上': '在线', '睡著': '睡着', '纪录': '记录', '装置': '设备'}
 out = {}
 for k, v in hant.items():
     s = cc.convert(v)
