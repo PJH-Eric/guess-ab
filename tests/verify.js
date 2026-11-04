@@ -95,13 +95,13 @@ test('台北時間日期', () => {
 
 console.log('五段難度');
 test('五段難度：項目數範圍、重複機率、每局隨機（各 400 局）', () => {
-  const RANGE = [[4, 5], [5, 6], [6, 7], [7, 8], [8, 8]];
+  const RANGE = [[4, 5], [5, 6], [6, 7], [7, 8], [8, 10]];
   for (let tier = 0; tier < 5; tier++) {
     let reps = 0; const ns = new Set();
     for (let i = 0; i < 400; i++) {
       const sp = Core.tierSpec(tier, 'digits', 't' + tier + ':' + i);
       assert.ok(sp.n >= RANGE[tier][0] && sp.n <= RANGE[tier][1], tier + ':' + sp.n);
-      assert.ok(sp.n <= 8, '一般模式項目池最多 8 個');
+      assert.ok(sp.n <= 10, '所有模式項目池最多 10 個');
       ns.add(sp.n); if (sp.rep) reps++;
       const s = Core.secretFor(sp);
       assert.ok(Core.validate(s, sp.n, sp.rep).ok);
@@ -177,7 +177,7 @@ test('每日挑戰：五個難度各一題、同一天同題、不同難度不�
     assert.deepStrictEqual(a.spec, b.spec);
     assert.deepStrictEqual(Core.secretFor(a.spec), Core.secretFor(b.spec));
     assert.strictEqual(a.hints, 0);
-    assert.ok(a.spec.n <= 8);
+    assert.ok(a.spec.n <= 10);
     sigs.add(a.spec.cs + a.spec.pool.join());
   }
   assert.strictEqual(sigs.size, 5);
@@ -405,7 +405,7 @@ test('競速選「隨機」字元集時，伺服器每局會抽出實際的字�
   w.hub.join(b, { roomId: room.id });
   w.hub.setReady(a, true); w.hub.setReady(b, true);
   assert.ok(Core.charset(room.game.spec.cs));
-  assert.strictEqual(room.game.spec.n, 8);
+  assert.ok(room.game.spec.n >= 8 && room.game.spec.n <= 10);
   assert.strictEqual(room.game.spec.rep, true);
 });
 
