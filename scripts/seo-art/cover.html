@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="common.css">
+<style>
+body{width:1200px;height:675px}
+.blob.a{width:760px;height:760px;left:220px;top:-40px;background:radial-gradient(circle,#BFEFDD 0,#DDF6EC 55%,transparent 70%)}
+.blob.b{width:300px;height:300px;left:-60px;bottom:-90px;background:radial-gradient(circle,#FFD3C7 0,transparent 70%)}
+.blob.c{width:280px;height:280px;right:-50px;top:-70px;background:radial-gradient(circle,#FFE49A 0,transparent 70%)}
+.vault{position:absolute;left:350px;top:210px;width:680px;height:300px;border:6px solid var(--ink);border-radius:56px;background:linear-gradient(180deg,#C9F0E3,#8FDCC2);box-shadow:0 16px 0 rgba(38,64,94,.3)}
+.vault::after{content:"";position:absolute;left:30px;right:30px;top:20px;height:26px;border-radius:30px;background:rgba(255,255,255,.45)}
+.slots{position:absolute;left:386px;top:250px;display:flex;gap:26px}
+.slots .slot{width:130px;height:150px;border-radius:34px}
+.slots .slot .sym{inset:10%;width:80%;height:80%}
+.pegs{position:absolute;left:431px;top:432px;display:flex;gap:116px}
+.pegs .peg{width:40px;height:40px}
+.g{background:#53C27A}
+#mascot{position:absolute;left:52px;top:250px;width:270px;height:270px;filter:drop-shadow(0 14px 0 rgba(38,64,94,.18))}
+#key{position:absolute;right:48px;top:24px;width:170px;height:170px;transform:rotate(18deg);filter:drop-shadow(0 12px 0 rgba(38,64,94,.2))}
+.star{position:absolute;color:var(--gold-d);font-size:54px}
+</style>
+<script src="../../public/js/art/registry.js"></script>
+<script src="../../public/js/art/mascot.js"></script>
+<script src="../../public/js/art/pack-fruit.js"></script>
+<script src="../../public/js/art/gems.js"></script>
+<div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+<div class="vault"></div>
+<div class="slots"><div class="slot" id="s1"></div><div class="slot" id="s2"></div><div class="slot" id="s3"></div><div class="slot" id="s4"></div></div>
+<div class="pegs"><i class="peg g"></i><i class="peg g"></i><i class="peg g"></i><i class="peg g"></i></div>
+<div id="mascot"></div>
+<div id="key"><svg viewBox="0 0 100 100"><circle cx="30" cy="34" r="22" fill="#FFC94A" stroke="#26405E" stroke-width="5"/><circle cx="30" cy="34" r="8" fill="#FFFBF3" stroke="#26405E" stroke-width="4"/><path d="M44 50 L84 90 M70 76 L82 64 M80 86 L90 76" fill="none" stroke="#26405E" stroke-width="15" stroke-linecap="round"/><path d="M44 50 L84 90 M70 76 L82 64 M80 86 L90 76" fill="none" stroke="#FFC94A" stroke-width="7" stroke-linecap="round"/></svg></div>
+<span class="star" style="left:250px;top:112px">★</span><span class="star" style="left:1070px;top:545px;font-size:40px">★</span><span class="star" style="left:150px;top:560px;font-size:44px">★</span>
+<script>
+function put(id,set,i){document.getElementById(id).innerHTML=GuessArt.svg(set,i)}
+document.getElementById('mascot').innerHTML=GuessArt.svg('mascot',2);
+put('s1','pack-fruit',0);put('s2','pack-fruit',1);put('s3','pack-fruit',2);put('s4','pack-fruit',4);
+</script>

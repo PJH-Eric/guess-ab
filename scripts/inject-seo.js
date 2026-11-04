@@ -18,7 +18,7 @@ function validate(cfg, gaId) {
   if (cfg.title.length > 40 || cfg.description.length < 40 || cfg.description.length > 120) throw new Error('SEO 文案長度錯誤');
   if (!/^G-[A-Z0-9]+$/.test(gaId)) throw new Error('GA_MEASUREMENT_ID 格式錯誤');
   if (cfg.ogImage && !/^https:\/\//.test(cfg.ogImage)) throw new Error('ogImage 必須是 HTTPS 網址');
-  if (cfg.ogImage && !/\/assets\/images\/cover\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 WebP 遊戲封面');
+  if (cfg.ogImage && !/\/assets\/images\/(seo|cover)\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 assets/images 下的 seo.webp 或 cover.webp');
 }
 
 function inject(root, env = process.env) {
@@ -31,7 +31,8 @@ function inject(root, env = process.env) {
   if (!/<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)) throw new Error('index.html 缺少 title');
   const descriptionTag = html.match(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>/i);
   const descriptionKey = descriptionTag && descriptionTag[0].match(/data-i18n-content="([^"]+)"/);
-  const imageHeight = cfg.ogImage ? '675' : '';
+  // SEO 分享圖 1200×630，cover 1200×675
+  const imageHeight = cfg.ogImage ? (/\/seo\.webp$/.test(cfg.ogImage) ? '630' : '675') : '';
   // 保留界線，重複建置不會累積標籤。所有檢查完成才寫入產物。
   html = html.replace(/<!--SEO:HEAD-->[\s\S]*?<!--SEO:END-->/, MARK)
     .replace(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>\s*/gi, '')

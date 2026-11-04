@@ -4,6 +4,8 @@
   "title": "密碼鎖 1A2B｜免費線上猜數字・字母・圖案",
   "description": "免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。五段難度、闖關 50 關、每日挑戰，也能線上多人競速、互相出題、觀戰聊天。",
   "lobbyUrl": "https://pjh-eric.github.io/game-lobby/",
+  "ogImage": "https://pjh-eric.github.io/guess-ab/assets/images/seo.webp",
+  "ogImageAlt": "密碼鎖 1A2B 遊戲分享圖：鎖頭小精靈與水果密碼",
   "googleSiteVerification": "",
   "genre": "益智",
   "players": "1-6"

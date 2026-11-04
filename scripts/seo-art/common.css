@@ -1,0 +1,9 @@
+:root{--bg:#FFF4E0;--paper:#FFFBF3;--ink:#26405E;--ink-soft:#5B7088;--mint:#6BCFB0;--mint-d:#3FA98A;--mint-l:#C9F0E3;--peach:#FF9B85;--peach-d:#E5735C;--gold:#FFC94A;--gold-d:#E0A21C}
+*{box-sizing:border-box}html,body{margin:0}
+body{position:relative;overflow:hidden;background:radial-gradient(ellipse at 30% 40%,#FFF9EC 0,var(--bg) 60%,#FFE9C7 100%);font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",system-ui,sans-serif;color:var(--ink)}
+body::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 14px 14px,rgba(255,201,74,.32) 3px,transparent 3.5px);background-size:34px 34px}
+.blob{position:absolute;border-radius:50%;filter:blur(2px)}
+svg.sym{display:block;width:100%;height:100%;overflow:visible}
+.slot{position:relative;border:5px solid var(--ink);border-radius:30px;background:var(--paper);box-shadow:0 10px 0 rgba(38,64,94,.28),inset 0 -8px 0 rgba(107,207,176,.25)}
+.slot .sym{position:absolute;inset:14%;width:72%;height:72%}
+.peg{border-radius:50%;border:5px solid var(--ink);box-shadow:0 5px 0 rgba(38,64,94,.28)}

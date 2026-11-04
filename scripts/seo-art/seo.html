@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="common.css">
+<style>
+body{width:1200px;height:630px}
+.blob.a{width:520px;height:520px;left:40px;top:60px;background:radial-gradient(circle,#BFEFDD 0,#DDF6EC 60%,transparent 72%)}
+.blob.b{width:260px;height:260px;right:90px;bottom:-70px;background:radial-gradient(circle,#FFD3C7 0,transparent 70%)}
+#mascot{position:absolute;left:92px;top:104px;width:420px;height:420px;filter:drop-shadow(0 18px 0 rgba(38,64,94,.18))}
+.fl{position:absolute;width:104px;height:104px;transform:rotate(var(--r))}
+.fl .slot{width:100%;height:100%;border-radius:26px}
+.title{position:absolute;left:596px;top:118px;width:510px}
+.title .main{font-size:150px;font-weight:900;letter-spacing:.04em;line-height:1.05;text-shadow:6px 6px 0 var(--gold)}
+.title .row{display:flex;align-items:center;gap:22px;margin-top:6px}
+.title .ab{font-size:104px;font-weight:900;color:var(--paper);background:var(--peach);border:6px solid var(--ink);border-radius:30px;padding:0 30px;line-height:1.25;box-shadow:0 10px 0 var(--ink);transform:rotate(-4deg)}
+.title .sub{margin-top:46px;font-size:38px;font-weight:800;color:var(--ink-soft);letter-spacing:.04em}
+.title .sub b{display:inline-block;margin-right:14px;padding:2px 18px;background:var(--mint-l);border:3px solid var(--ink);border-radius:999px;color:var(--ink)}
+</style>
+<script src="../../public/js/art/registry.js"></script>
+<script src="../../public/js/art/mascot.js"></script>
+<script src="../../public/js/art/pack-fruit.js"></script>
+<script src="../../public/js/art/gems.js"></script>
+<div class="blob a"></div><div class="blob b"></div>
+<div id="mascot"></div>
+<div class="fl" style="left:430px;top:96px;--r:10deg"><div class="slot" id="f1"></div></div>
+<div class="fl" style="left:470px;top:430px;--r:-9deg"><div class="slot" id="f2"></div></div>
+<div class="fl" style="left:56px;top:430px;--r:-8deg"><div class="slot" id="f3"></div></div>
+<div class="title"><div class="main">密碼鎖</div><div class="row"><span class="ab">1A2B</span></div><div class="sub"><b>免費</b>線上猜密碼</div></div>
+<script>
+function put(id,set,i){document.getElementById(id).innerHTML=GuessArt.svg(set,i)}
+document.getElementById('mascot').innerHTML=GuessArt.svg('mascot',2);
+put('f1','pack-fruit',0);put('f2','pack-fruit',2);put('f3','gems',0);
+</script>
