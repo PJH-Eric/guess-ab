@@ -392,7 +392,7 @@
     if (!g) return;
     var you = r.you;
     var key = r.id + ':' + g.no + ':' + (r.mode === 'duel' ? (g.phase === 'setup' && you.role === 'player' && !(g.players[you.seat] && g.players[you.seat].locked) ? 'secret' : 'play') : 'play');
-    var spec = { cs: g.spec.cs, n: g.spec.n, rep: g.spec.rep, pool: g.spec.pool, seed: 'room' };
+    var spec = { cs: g.spec.cs, n: g.spec.n, rep: g.spec.rep, pool: g.spec.pool, cnt: g.spec.cnt || null, size: g.spec.size || g.spec.n, seed: 'room' };
     if (key !== setupKey) {
       setupKey = key;
       var purpose = key.slice(-6) === 'secret' ? 'secret' : 'guess';
@@ -450,7 +450,7 @@
     var r = room, g = r.game; if (!g) return;
     var you = r.you;
     var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(t('tier.' + g.tier)) + '</span></div>' +
-      '<p class="small">' + esc(t('cs.' + g.spec.cs) + '・' + t('spec.n', { n: g.spec.n }) + '・' + (g.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</p>';
+      '<p class="small">' + esc(K.specLine(g.spec)) + '</p>';
     if (r.mode === 'race' && r.status === 'playing') {
       /* 有人猜中後改顯示 10 秒收尾倒數 */
       var left = (g.finishAt || g.endsAt) - now();
@@ -481,7 +481,7 @@
       var mineSec = you.role === 'player' && g.players[you.seat] && g.players[you.seat].mySecret;
       if (mineSec) html += '<div class="my-secret"><span>' + esc(t('sum.mySecret')) + '</span><div class="sec-code">' + mineSec.map(function (v) { return '<span class="h-sym">' + K.sym(g.spec, v, 'hist-sym') + '</span>'; }).join('') + '</div></div>';
     }
-    html += '<div class="pool-row"><span class="pool-label">' + esc(t('sum.pool')) + '</span><div class="pool">' + g.spec.pool.map(function (id, i) { return '<span class="pool-sym">' + K.sym(g.spec, i, 'pool-svg') + '</span>'; }).join('') + '</div></div>';
+    html += '<div class="pool-row"><span class="pool-label">' + esc(t('sum.pool')) + '</span>' + K.poolHtml(g.spec) + '</div>';
     html += '<div class="sum-actions">' + (you.role === 'player' && (r.status === 'playing' || r.status === 'setup') ? '<button type="button" class="btn small danger" id="og-resign">' + K.icon('flag') + '<span>' + esc(t('sum.giveup')) + '</span></button>' : '') +
       '<button type="button" class="btn small ghost" id="og-room">' + K.icon('users') + '<span>' + esc(t('res.room')) + '</span></button></div>';
     $('summary').innerHTML = html;

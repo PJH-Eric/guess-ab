@@ -16,7 +16,7 @@
 
   function kindOf(cs) { var c = Core.charset(cs); return c ? c.kind : 'digits'; }
   function tierName(tier) { return t('tier.' + tier); }
-  function specLine(spec) { return t('cs.' + spec.cs) + '・' + t('spec.n', { n: spec.n }) + '・' + (spec.rep ? t('spec.rep3') : t('spec.norep')); }
+  function specLine(spec) { return K.specLine(spec); }
   function stop() { if (cur) cur.dead = true; }
 
   function reactTo(a, b) {
@@ -41,8 +41,7 @@
       '<dt>' + t('sum.spec') + '</dt><dd>' + K.esc(specLine(c.spec)) + '</dd>' +
       '<dt>' + t('sum.par') + '</dt><dd>' + t('sum.parN', { n: c.par }) + '</dd>' +
       '</dl>';
-    html += '<div class="pool-row" aria-label="' + K.esc(t('sum.pool')) + '"><span class="pool-label">' + t('sum.pool') + '</span><div class="pool">' +
-      c.spec.pool.map(function (id, i) { return '<span class="pool-sym" title="' + K.esc(K.symName(c.spec, i)) + '">' + K.sym(c.spec, i, 'pool-svg') + '</span>'; }).join('') + '</div></div>';
+    html += '<div class="pool-row" aria-label="' + K.esc(t('sum.pool')) + '"><span class="pool-label">' + t('sum.pool') + '</span>' + K.poolHtml(c.spec) + '</div>';
     if (c.hintsLeft != null && c.hintsLeft !== 0 || c.boss) {
       var left = c.hintsLeft === Infinity ? '∞' : c.hintsLeft;
       var dis = c.over || !c.hintsLeft || !G.enabled;

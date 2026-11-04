@@ -8,6 +8,8 @@
  *
  * v0.8：玩家不再自己設定項目數與重複，改由五段難度（幼幼／簡單／普通／困難／神話）自動隨機決定；
  *       所有模式項目池最多 10 個（神話 8～10 個）；可重複時同一個符號最多出現 3 次。
+ * v0.9：可重複的局，項目池直接列出重複的項目（例如兩個 1），池裡有幾個就是密碼裡最多幾個（可以更少）。
+ *       spec.n＝不同項目數（索引範圍），spec.cnt[i]＝第 i 個項目的次數上限，spec.size＝含重複的項目總數（≤10）。
  */
 (function (root, factory) {
   'use strict';
@@ -127,11 +129,56 @@
    */
   function makeSpec(opt, seed) {
     var cs = CHARSETS[opt.cs] ? opt.cs : 'digits';
-    var n = clampN(cs, opt.n);
     var rep = !!opt.rep;
+    var cnt = null, n;
+    if (rep && Array.isArray(opt.cnt) && validCnt(opt.cnt)) {
+      /* 已經決定好的重複對應（例如伺服器傳來的） */
+      cnt = opt.cnt.slice();
+      n = cnt.length;
+    } else {
+      /* opt.n＝含重複的項目總數 */
+      var size = clampN(cs, opt.n);
+      if (rep) {
+        cnt = makeCnt(rngFrom(seed + ':cnt'), size);
+        n = cnt.length;
+      } else n = size;
+    }
     var pool = opt.pool && validPool(cs, n, opt.pool) ? opt.pool.slice() : makePool(rngFrom(seed + ':pool'), cs, n);
-    return { cs: cs, n: n, rep: rep, pool: pool, seed: String(seed) };
+    var spec = { cs: cs, n: n, rep: rep, pool: pool, size: n, seed: String(seed) };
+    if (cnt) { spec.cnt = cnt; spec.size = cnt.reduce(function (s, x) { return s + x; }, 0); }
+    return spec;
   }
+  /** 可重複的局：總數 size 裡挑 1～3 個（且不同項目至少留 4 個）當重複的複本，同一個最多 MAX_SAME 次 */
+  function makeCnt(rng, size) {
+    var extra = 1 + rng.int(Math.max(1, Math.min(3, size - LEN)));
+    var d = Math.max(LEN, size - extra);
+    extra = size - d;
+    var cnt = [];
+    for (var i = 0; i < d; i++) cnt.push(1);
+    for (var e = 0; e < extra; e++) {
+      var open = [];
+      for (var j = 0; j < d; j++) if (cnt[j] < MAX_SAME) open.push(j);
+      cnt[open[rng.int(open.length)]]++;
+    }
+    return cnt;
+  }
+  function validCnt(cnt) {
+    if (cnt.length < LEN || cnt.length > N_MAX) return false;
+    var sum = 0;
+    for (var i = 0; i < cnt.length; i++) {
+      if (!Number.isInteger(cnt[i]) || cnt[i] < 1 || cnt[i] > MAX_SAME) return false;
+      sum += cnt[i];
+    }
+    return sum <= N_MAX;
+  }
+  /** 項目池照次數展開成要顯示的索引清單（例如 cnt [2,1,1] → [0,0,1,2]） */
+  function poolList(spec) {
+    var out = [];
+    for (var i = 0; i < spec.n; i++) for (var k = 0; k < (spec.cnt ? spec.cnt[i] : 1); k++) out.push(i);
+    return out;
+  }
+  /** 第 i 個項目在密碼裡最多幾次 */
+  function maxOf(spec, i) { return spec.cnt ? spec.cnt[i] : spec.rep ? MAX_SAME : 1; }
   function validPool(cs, n, pool) {
     var c = CHARSETS[cs];
     if (!Array.isArray(pool) || pool.length !== n) return false;
@@ -146,13 +193,33 @@
 
   /** 可能空間大小 */
   /** 可重複時排除「4 格都一樣」（同一符號最多 3 次） */
-  function spaceSize(n, rep) {
+  function spaceSize(n, rep, cnt) {
+    if (rep && cnt) {
+      /* 依次數上限逐格計數（n ≤ 10，直接數） */
+      var total = 0, used = new Array(n).fill(0);
+      (function walk(k) {
+        if (k === LEN) { total++; return; }
+        for (var v = 0; v < n; v++) if (used[v] < cnt[v]) { used[v]++; walk(k + 1); used[v]--; }
+      })(0);
+      return total;
+    }
     return rep ? Math.pow(n, LEN) - n : n * (n - 1) * (n - 2) * (n - 3);
   }
 
   /* ---------- 出題 ---------- */
-  function makeSecret(rng, n, rep) {
+  function makeSecret(rng, n, rep, cnt) {
     var out = [];
+    if (rep && cnt) {
+      /* 從展開後的項目池不放回抽 4 個：池裡有幾個，密碼裡就最多幾個 */
+      var bag = [];
+      for (var q = 0; q < n; q++) for (var m = 0; m < cnt[q]; m++) bag.push(q);
+      for (var p = 0; p < LEN; p++) {
+        var w = p + rng.int(bag.length - p);
+        var tmp = bag[p]; bag[p] = bag[w]; bag[w] = tmp;
+        out.push(bag[p]);
+      }
+      return out;
+    }
     if (rep) {
       do {
         out = [];
@@ -169,7 +236,7 @@
     }
     return out;
   }
-  function secretFor(spec) { return makeSecret(rngFrom(spec.seed + ':secret'), spec.n, spec.rep); }
+  function secretFor(spec) { return makeSecret(rngFrom(spec.seed + ':secret'), spec.n, spec.rep, spec.cnt); }
 
   /* ---------- 判定 ---------- */
   var _cs = new Int16Array(64), _cg = new Int16Array(64);
@@ -191,11 +258,17 @@
   function fbCode(a, b) { return a * 5 + b; }
 
   /** 合法性：長度、範圍、（不重複規格）不得重複 */
-  function validate(guess, n, rep) {
+  function validate(guess, n, rep, cnt) {
     if (!Array.isArray(guess) || guess.length !== LEN) return { ok: false, reason: 'length' };
     for (var i = 0; i < LEN; i++) {
       var v = guess[i];
       if (!Number.isInteger(v) || v < 0 || v >= n) return { ok: false, reason: 'unknown' };
+    }
+    if (rep && cnt) {
+      /* 可重複：同一個項目不能超過項目池裡的個數 */
+      var c = {};
+      for (var z = 0; z < LEN; z++) { c[guess[z]] = (c[guess[z]] || 0) + 1; if (c[guess[z]] > cnt[guess[z]]) return { ok: false, reason: 'tooMany' }; }
+      return { ok: true };
     }
     if (!rep) {
       for (var x = 0; x < LEN; x++) for (var y = x + 1; y < LEN; y++) if (guess[x] === guess[y]) return { ok: false, reason: 'duplicate' };
@@ -222,7 +295,7 @@
     CHARSETS: CHARSETS, CHARSET_IDS: CHARSET_IDS,
     hashString: hashString, mulberry32: mulberry32, rngFrom: rngFrom, randomSeed: randomSeed,
     charset: charset, clampN: clampN, symbolRef: symbolRef,
-    makePool: makePool, makeSpec: makeSpec, validPool: validPool, spaceSize: spaceSize,
+    makePool: makePool, makeSpec: makeSpec, validPool: validPool, validCnt: validCnt, poolList: poolList, maxOf: maxOf, spaceSize: spaceSize,
     makeSecret: makeSecret, secretFor: secretFor, evaluate: evaluate, fbCode: fbCode, validate: validate,
     taipeiDate: taipeiDate, dayNumber: dayNumber
   };

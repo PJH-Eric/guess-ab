@@ -180,8 +180,8 @@
       '<small class="f-help">' + esc(t('tierHelp.' + s.tier, { a: range[0], b: range[1] })) + '</small></div>' +
       '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="f-cs" aria-haspopup="listbox" aria-expanded="false">' + csLabelIcon(s.cs) + '<span>' + esc(t('cs.' + s.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
       '<div class="field"><span class="f-label">' + esc(t('setup.preview')) + '<button type="button" class="link-btn" id="f-reroll">' + K.icon('shuffle') + esc(t('setup.reroll')) + '</button></span>' +
-      '<p class="setup-info">' + K.icon('dice') + '<span>' + esc(t('setup.rolled', { cs: t('cs.' + spec.cs), n: spec.n, rep: spec.rep ? t('spec.rep3') : t('spec.norep') })) + '</span></p>' +
-      '<div class="pool big">' + spec.pool.map(function (id, i) { return '<span class="pool-sym" title="' + esc(K.symName(spec, i)) + '">' + K.sym(spec, i, 'pool-svg') + '</span>'; }).join('') + '</div></div>' +
+      '<p class="setup-info">' + K.icon('dice') + '<span>' + esc(t('setup.rolled', { cs: t('cs.' + spec.cs), n: K.poolSize(spec), rep: spec.rep ? t('spec.rep3') : t('spec.norep') })) + '</span></p>' +
+      K.poolHtml(spec, 'big') + '</div>' +
       '<p class="setup-info">' + K.icon('question') + '<span>' + esc(t('setup.noLimit', { p: Table.par(s.tier, spec.n, spec.rep) })) + '</span></p>' +
       '</div><div class="page-actions"><button type="button" class="btn primary big" id="f-start">' + K.icon('play') + '<span>' + esc(t('setup.start')) + '</span></button></div></div>';
     $('scr-setup').innerHTML = html;
@@ -221,8 +221,8 @@
         var open = Store.unlocked(0, L);
         var boss = L % 10 === 0;
         html += '<button type="button" class="lv-card t' + tier + (boss ? ' boss' : '') + (st ? ' cleared' : '') + '" data-l="' + L + '"' + (open ? '' : ' disabled aria-disabled="true"') +
-          ' aria-label="' + esc(t('level.aria', { n: L, t: t('tier.' + tier), cs: t('cs.' + sp.cs), k: sp.n, rep: sp.rep ? t('spec.rep3') : t('spec.norep'), s: st })) + (open ? '' : '，' + esc(t('level.locked'))) + '">' +
-          '<b class="lv-no">' + L + '</b><span class="lv-cs">' + K.csIcon(sp.cs, 'lv-svg') + '</span><span class="lv-spec">' + sp.n + (sp.rep ? '<i class="rep-mark">' + K.icon('refresh') + '</i>' : '') + '</span>' +
+          ' aria-label="' + esc(t('level.aria', { n: L, t: t('tier.' + tier), cs: t('cs.' + sp.cs), k: K.poolSize(sp), rep: sp.rep ? t('spec.rep3') : t('spec.norep'), s: st })) + (open ? '' : '，' + esc(t('level.locked'))) + '">' +
+          '<b class="lv-no">' + L + '</b><span class="lv-cs">' + K.csIcon(sp.cs, 'lv-svg') + '</span><span class="lv-spec">' + K.poolSize(sp) + (sp.rep ? '<i class="rep-mark">' + K.icon('refresh') + '</i>' : '') + '</span>' +
           '<span class="lv-stars">' + (open ? [0, 1, 2].map(function (i) { return '<i class="' + (i < st ? 'on' : '') + '">' + K.icon(i < st ? 'star' : 'star-empty') + '</i>'; }).join('') : '<i class="lock">' + K.icon('lock') + '</i>') + '</span></button>';
       }
       html += '</div></section>';
@@ -247,7 +247,7 @@
       html += '<button type="button" class="daily-tier t' + k + (done ? ' done' : '') + '" data-tier="' + k + '">' +
         '<span class="tier-badge t' + k + '">' + esc(t('tier.' + k)) + '</span>' +
         '<span class="dt-cs">' + K.csIcon(info.spec.cs, 'dt-svg') + '</span>' +
-        '<span class="dt-text"><b>' + esc(t('cs.' + info.spec.cs)) + '</b><small>' + esc(t('spec.n', { n: info.spec.n }) + '・' + (info.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</small></span>' +
+        '<span class="dt-text"><b>' + esc(t('cs.' + info.spec.cs)) + '</b><small>' + esc(t('spec.n', { n: K.poolSize(info.spec) }) + '・' + (info.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</small></span>' +
         '<span class="dt-state">' + (done ? '<i class="ok">' + K.icon('check') + esc(done.won ? t('daily.doneN', { n: done.steps }) : t('daily.gaveUp')) + '</i>' : '<i>' + esc(t('home.dailyGo')) + '</i>') +
         '<i class="streak">' + K.icon('flame') + streak + '</i></span></button>';
     }
@@ -295,8 +295,9 @@
       sec('lock', 'help.abT', '<p>' + esc(t('help.ab')) + '</p><div class="ex"><div class="ex-row"><span class="ex-l">' + esc(t('help.secret')) + '</span>' + codeRow('digits', [1, 2, 3, 4]) + '</div>' +
         '<div class="ex-row"><span class="ex-l">' + esc(t('help.guess')) + '</span>' + codeRow('digits', [1, 3, 2, 5]) + '<span class="h-fb">' + fb(1, 2) + '</span></div></div>' +
         '<p class="small">' + esc(t('help.abWhy')) + '</p>') +
-      sec('refresh', 'help.repT', '<p>' + esc(t('help.rep')) + '</p><div class="ex"><div class="ex-row"><span class="ex-l">' + esc(t('help.secret')) + '</span>' + codeRow('letters', [0, 1, 0, 2]) + '</div>' +
-        '<div class="ex-row"><span class="ex-l">' + esc(t('help.guess')) + '</span>' + codeRow('letters', [0, 0, 1, 1]) + '<span class="h-fb">' + fb(1, 2) + '</span></div></div><p class="small">' + esc(t('help.repWhy')) + '</p>') +
+      sec('refresh', 'help.repT', '<p>' + esc(t('help.rep')) + '</p><div class="ex"><div class="ex-row"><span class="ex-l">' + esc(t('help.repPool')) + '</span>' + codeRow('letters', [0, 0, 1, 2, 3, 4]) + '</div>' +
+        '<div class="ex-row"><span class="ex-l">' + esc(t('help.secret')) + '</span>' + codeRow('letters', [0, 1, 0, 2]) + '</div>' +
+        '<div class="ex-row"><span class="ex-l">' + esc(t('help.guess')) + '</span>' + codeRow('letters', [0, 0, 1, 3]) + '<span class="h-fb">' + fb(1, 2) + '</span></div></div><p class="small">' + esc(t('help.repWhy')) + '</p>') +
       sec('grid', 'help.kindsT', '<p>' + esc(t('help.kinds')) + '</p><div class="kinds">' + root.GuessCore.CHARSET_IDS.map(function (c) { return '<span class="kind">' + K.csIcon(c, 'kind-svg') + '<small>' + esc(t('cs.' + c)) + '</small></span>'; }).join('') + '</div>') +
       sec('enter', 'help.inputT', '<ul class="tips"><li>' + esc(t('help.in1')) + '</li><li>' + esc(t('help.in2')) + '</li><li>' + esc(t('help.in3')) + '</li><li>' + esc(t('help.in4')) + '</li><li>' + esc(t('help.in5')) + '</li></ul>') +
       sec('pencil', 'help.notesT', '<p>' + esc(t('help.notes')) + '</p>') +

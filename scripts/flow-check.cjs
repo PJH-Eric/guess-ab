@@ -65,7 +65,14 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   await p.click('#f-start'); await p.waitForTimeout(300);
   const gp = await p.evaluate(() => ({ n: Solo.active.spec.n, rep: Solo.active.spec.rep, hints: Solo.active.hintsLeft, tier: Solo.active.tier }));
   assert.ok(gp.rep && gp.hints === 0 && gp.tier === 4, JSON.stringify(gp));
-  const pool3 = await p.$$eval('#summary .pool-sym', e => e.map(x => x.title).join());
+  const pool3 = await p.$$eval('#summary .pool .pool-sym', e => e.map(x => x.title).join());
+  /* 可重複：項目池列出重複的項目、下方有重複對應、鍵盤角標＝次數上限 */
+  const rp = await p.evaluate(() => {
+    const sp = Solo.active.spec, reps = sp.cnt.filter(x => x > 1).length;
+    return { reps, map: document.querySelectorAll('#summary .pool-map-it').length, max: [...document.querySelectorAll('#keys .key-max')].map(e => e.textContent).join(),
+      want: sp.cnt.filter(x => x > 1).map(x => '×' + x).join(), size: sp.size, shown: document.querySelectorAll('#summary .pool .pool-sym').length };
+  });
+  assert.ok(rp.reps > 0 && rp.map === rp.reps && rp.max === rp.want && rp.shown === rp.size, JSON.stringify(rp));
   assert.strictEqual(pool3, pool2, '開始後項目池＝預覽');
   ok('開局設定：神話 8～10 個可重複、沒有提示、題目與預覽一致');
 
@@ -74,10 +81,15 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   await p.waitForTimeout(500);
   await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.waitForTimeout(800);
   assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 0, '0000 不會送出');
-  assert.ok(/最多 3 次/.test(await p.$eval('#input-note', e => e.textContent)));
-  await p.keyboard.press('Backspace'); await p.keyboard.press('Digit1'); await p.waitForFunction(() => Solo.active.rows.length === 1, null, { timeout: 3000 }).catch(() => {});
-  assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 1, '0001 自動送出');
-  ok('鍵盤：直打自動送出、4 格全同擋下並提示');
+  assert.strictEqual(await p.$$eval('#slots .wheel.dup', e => e.length), 0, '同一個不會超過項目池裡的個數');
+  assert.ok(!(await p.$eval('#input-note', e => e.textContent)), '沒有超量警告（超過的那一下會拿掉）');
+  /* 清空後用鍵盤直打一組合法的猜測（取本局答案，數字鍵＝符號本身）→ 自動送出 */
+  for (let i = 0; i < 4; i++) await p.keyboard.press('Backspace');
+  const digits = await p.evaluate(() => Solo.active.secret.map(v => Solo.active.spec.pool[v]));
+  for (const d of digits) await p.keyboard.press('Digit' + d);
+  await p.waitForFunction(() => Solo.active.rows.length === 1, null, { timeout: 3000 }).catch(() => {});
+  assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 1, '合法猜測自動送出 ' + digits.join(''));
+  ok('鍵盤：直打自動送出、超過項目池個數的那一下會拿掉');
 
   /* 6 統計：局數累加、各難度表 */
   await p.evaluate(() => App.show('stats'));

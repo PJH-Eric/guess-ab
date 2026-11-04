@@ -53,9 +53,36 @@ test('預設規格窮舉 5040×200：A+B ≤ 4、A=4 只在相同時', () => {
     }
   }
 });
-test('教學頁範例：1234 vs 1325＝1A2B；ABAC vs AABB＝1A2B', () => {
+test('教學頁範例：1234 vs 1325＝1A2B；池 AABCDE 下 ABAC vs AABD＝1A2B', () => {
   assert.deepStrictEqual(Core.evaluate([1, 2, 3, 4], [1, 3, 2, 5]), { a: 1, b: 2 });
-  assert.deepStrictEqual(Core.evaluate([0, 1, 0, 2], [0, 0, 1, 1]), { a: 1, b: 2 });
+  assert.deepStrictEqual(Core.evaluate([0, 1, 0, 2], [0, 0, 1, 3]), { a: 1, b: 2 });
+  const cnt = [2, 1, 1, 1, 1];
+  assert.ok(Core.validate([0, 1, 0, 2], 5, true, cnt).ok, '範例密碼合法');
+  assert.ok(Core.validate([0, 0, 1, 3], 5, true, cnt).ok, '範例猜測合法');
+});
+test('可重複的項目池：池裡有幾個就最多幾個', () => {
+  const cnt = [2, 1, 3, 1];
+  assert.strictEqual(Core.validate([0, 0, 1, 2], 4, true, cnt).ok, true);
+  assert.strictEqual(Core.validate([1, 1, 0, 2], 4, true, cnt).reason, 'tooMany', '1 只有一個');
+  assert.strictEqual(Core.validate([2, 2, 2, 3], 4, true, cnt).ok, true, '池裡有三個就能用三個');
+  assert.strictEqual(Core.validate([0, 0, 0, 1], 4, true, cnt).reason, 'tooMany');
+  /* 可能空間：暴力數一遍 */
+  let brute = 0;
+  for (let i = 0; i < 256; i++) { const g = [i & 3, (i >> 2) & 3, (i >> 4) & 3, (i >> 6) & 3]; if (Core.validate(g, 4, true, cnt).ok) brute++; }
+  assert.strictEqual(Core.spaceSize(4, true, cnt), brute);
+  for (let i = 0; i < 300; i++) {
+    const sp = Core.makeSpec({ cs: 'digits', n: 4 + (i % 7), rep: true }, 'cnt:' + i);
+    const total = sp.cnt.reduce((x, y) => x + y, 0);
+    assert.strictEqual(sp.size, 4 + (i % 7), '含重複的總數＝項目數');
+    assert.ok(total <= 10 && sp.n >= 4 && sp.n === sp.pool.length, '總數最多 10、不同項目至少 4');
+    assert.ok(sp.cnt.some(x => x > 1) || sp.size === sp.n, '有重複的項目');
+    assert.ok(sp.cnt.every(x => x >= 1 && x <= 3), '同一個最多 3 個');
+    assert.strictEqual(Core.poolList(sp).length, sp.size, '展開後的項目池列出每個重複');
+    const sec = Core.secretFor(sp);
+    assert.ok(Core.validate(sec, sp.n, true, sp.cnt).ok, '答案不超過池裡的個數');
+    const again = Core.makeSpec({ cs: sp.cs, n: sp.n, rep: true, pool: sp.pool, cnt: sp.cnt }, 'other');
+    assert.deepStrictEqual([again.cnt, again.pool, again.size], [sp.cnt, sp.pool, sp.size], '伺服器傳來的對應原樣保留');
+  }
 });
 test('合法性檢查', () => {
   assert.strictEqual(Core.validate([1, 2, 3], 10, false).reason, 'length');
@@ -72,10 +99,12 @@ test('項目池：同 seed 可重現、不重複、在字元集內、答案在�
       for (const rep of [false, true]) {
         const a = Core.makeSpec({ cs, n, rep }, 'x:' + cs + n + rep), b = Core.makeSpec({ cs, n, rep }, 'x:' + cs + n + rep);
         assert.deepStrictEqual(a.pool, b.pool);
-        assert.ok(Core.validPool(cs, n, a.pool));
+        assert.deepStrictEqual(a.cnt, b.cnt);
+        assert.strictEqual(a.size, n);
+        assert.ok(Core.validPool(cs, a.n, a.pool));
         assert.deepStrictEqual(a.pool.slice().sort((x, y) => x - y), a.pool);
         const s = Core.secretFor(a);
-        assert.ok(Core.validate(s, n, rep).ok);
+        assert.ok(Core.validate(s, a.n, rep, a.cnt).ok);
       }
     }
   }
@@ -100,11 +129,11 @@ test('五段難度：項目數範圍、重複機率、每局隨機（各 400 局
     let reps = 0; const ns = new Set();
     for (let i = 0; i < 400; i++) {
       const sp = Core.tierSpec(tier, 'digits', 't' + tier + ':' + i);
-      assert.ok(sp.n >= RANGE[tier][0] && sp.n <= RANGE[tier][1], tier + ':' + sp.n);
-      assert.ok(sp.n <= 10, '所有模式項目池最多 10 個');
-      ns.add(sp.n); if (sp.rep) reps++;
+      assert.ok(sp.size >= RANGE[tier][0] && sp.size <= RANGE[tier][1], tier + ':' + sp.size);
+      assert.ok(sp.size <= 10, '所有模式項目池（含重複）最多 10 個');
+      ns.add(sp.size); if (sp.rep) reps++;
       const s = Core.secretFor(sp);
-      assert.ok(Core.validate(s, sp.n, sp.rep).ok);
+      assert.ok(Core.validate(s, sp.n, sp.rep, sp.cnt).ok);
       if (sp.rep) { const c = {}; s.forEach(x => c[x] = (c[x] || 0) + 1); assert.ok(Math.max(...Object.values(c)) <= 3, '同一個最多 3 次'); }
     }
     assert.strictEqual(ns.size, RANGE[tier][1] - RANGE[tier][0] + 1, '範圍內每個項目數都會出現');
@@ -146,10 +175,10 @@ test('50 關：每 10 關換一段難度、項目數 4→10 遞增、頭目關�
     const info = Levels.level(L);
     assert.strictEqual(info.tier, Math.floor((L - 1) / 10), 'L' + L);
     const c = Core.charset(info.spec.cs);
-    assert.ok(info.spec.n >= 4 && info.spec.n <= 10);
-    assert.ok(info.spec.n >= prevN, '項目數不會倒退'); prevN = info.spec.n;
+    assert.ok(info.spec.size >= 4 && info.spec.size <= 10);
+    assert.ok(info.spec.size >= prevN, '項目數（含重複）不會倒退'); prevN = info.spec.size;
     assert.ok(Core.validPool(info.spec.cs, info.spec.n, info.spec.pool));
-    assert.ok(Core.validate(Core.secretFor(info.spec), info.spec.n, info.spec.rep).ok);
+    assert.ok(Core.validate(Core.secretFor(info.spec), info.spec.n, info.spec.rep, info.spec.cnt).ok);
     if (info.tier < 2) assert.strictEqual(info.spec.rep, false, '幼幼、簡單不重複');
     if (info.tier === 4) assert.strictEqual(info.spec.rep, true, '神話一定重複');
     assert.strictEqual(info.boss, L % 10 === 0);
@@ -159,7 +188,7 @@ test('50 關：每 10 關換一段難度、項目數 4→10 遞增、頭目關�
     assert.deepStrictEqual(Levels.level(L).spec, info.spec, '每次都一樣');
   }
   assert.strictEqual(Levels.level(1).spec.n, 4);
-  assert.strictEqual(Levels.level(50).spec.n, 10);
+  assert.strictEqual(Levels.level(50).spec.size, 10);
   assert.ok(['digits', 'letters', 'gems', 'pack', 'mix'].every(k => kinds.has(k)));
 });
 test('星數：標準內 3★、多 2 步內 2★、其餘 1★；用提示最高 2★', () => {
@@ -419,8 +448,9 @@ test('競速選「隨機」字元集時，伺服器每局會抽出實際的字�
   w.hub.join(b, { roomId: room.id });
   w.hub.setReady(a, true); w.hub.setReady(b, true); w.hub.start(a);
   assert.ok(Core.charset(room.game.spec.cs));
-  assert.ok(room.game.spec.n >= 8 && room.game.spec.n <= 10);
+  assert.ok(room.game.spec.size >= 8 && room.game.spec.size <= 10);
   assert.strictEqual(room.game.spec.rep, true);
+  assert.ok(Array.isArray(room.game.spec.cnt) && room.game.spec.cnt.length === room.game.spec.n, '可重複的局有重複對應');
 });
 
 Promise.all(pending).then(() => {

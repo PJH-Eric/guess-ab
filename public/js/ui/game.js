@@ -111,8 +111,8 @@
     fitCols();
     for (var i = 0; i < n; i++) {
       var b = K.h('<button type="button" class="key" data-i="' + i + '">' + K.sym(cfg.spec, i, 'key-sym') +
-        '<span class="key-cap">' + K.esc(keyLabel(i)) + '</span><span class="key-note" aria-hidden="true"></span><span class="key-used" aria-hidden="true"></span></button>');
-      b.setAttribute('aria-label', K.symName(cfg.spec, i));
+        '<span class="key-cap">' + K.esc(keyLabel(i)) + '</span><span class="key-note" aria-hidden="true"></span><span class="key-used" aria-hidden="true"></span>' + maxBadge(i) + '</button>');
+      b.setAttribute('aria-label', K.symName(cfg.spec, i) + maxLabel(i));
       box.appendChild(b);
     }
   }
@@ -157,11 +157,14 @@
     return 10;
   }
 
+  /** 項目池裡有重複的項目：角落標「×2」，提醒這個最多可以用幾次 */
+  function maxBadge(i) { var m = cfg.spec.cnt ? cfg.spec.cnt[i] : 1; return m > 1 ? '<span class="key-max" aria-hidden="true">×' + m + '</span>' : ''; }
+  function maxLabel(i) { var m = cfg.spec.cnt ? cfg.spec.cnt[i] : 1; return m > 1 ? '（' + t('pool.maxN', { n: m }) + '）' : ''; }
   function buildNotes() {
     var box = $('notes');
     box.innerHTML = '';
     for (var i = 0; i < cfg.spec.n; i++) {
-      var b = K.h('<button type="button" class="note" data-i="' + i + '">' + K.sym(cfg.spec, i, 'note-sym') + '<span class="note-mark" aria-hidden="true"></span></button>');
+      var b = K.h('<button type="button" class="note" data-i="' + i + '">' + K.sym(cfg.spec, i, 'note-sym') + '<span class="note-mark" aria-hidden="true"></span>' + maxBadge(i) + '</button>');
       box.appendChild(b);
     }
     renderNotes();
@@ -170,8 +173,15 @@
   /* ---------- 狀態 → 畫面 ---------- */
   function dupSet() {
     var d = {};
+    if (cfg.spec.cnt) {
+      /* 可重複：同一個項目不能超過項目池裡的個數 */
+      var c = {};
+      input.forEach(function (v) { if (v != null) c[v] = (c[v] || 0) + 1; });
+      input.forEach(function (v, s) { if (v != null && c[v] > cfg.spec.cnt[v]) d[s] = 1; });
+      return d;
+    }
     if (cfg.spec.rep) {
-      /* 可重複：同一個符號最多 3 次，4 格全一樣才算不合法 */
+      /* 舊規格：同一個符號最多 3 次，4 格全一樣才算不合法 */
       if (input.every(function (v) { return v != null && v === input[0]; })) d = { 0: 1, 1: 1, 2: 1, 3: 1 };
       return d;
     }
@@ -202,9 +212,12 @@
     doc.querySelectorAll('#keys .key').forEach(function (b) {
       var i = Number(b.getAttribute('data-i'));
       var c = used[i] || 0;
-      b.classList.toggle('used', !cfg.spec.rep && c > 0);
-      b.classList.toggle('used-rep', cfg.spec.rep && c > 0);
-      b.querySelector('.key-used').textContent = cfg.spec.rep && c > 0 ? '×' + c : '';
+      var cap = Core.maxOf(cfg.spec, i);
+      b.classList.toggle('used', !cfg.spec.rep && c > 0 || !!cfg.spec.cnt && c >= cap);
+      b.classList.toggle('used-rep', cfg.spec.rep && c > 0 && !(cfg.spec.cnt && c >= cap));
+      /* 有次數上限的項目顯示「1/2」，角標就先收起來 */
+      b.querySelector('.key-used').textContent = cfg.spec.rep && c > 0 ? (cfg.spec.cnt && cap > 1 ? c + '/' + cap : '×' + c) : '';
+      b.classList.toggle('has-used', c > 0);
       b.disabled = !enabled;
       b.setAttribute('aria-pressed', c > 0 ? 'true' : 'false');
     });
@@ -214,7 +227,7 @@
     $('k-back').disabled = !enabled || input.every(function (v) { return v == null; });
     $('k-clear').disabled = $('k-back').disabled;
     var note = '';
-    if (Object.keys(dup).length) note = t(cfg.spec.rep ? 'game.tooManyNote' : 'game.dupNote');
+    if (Object.keys(dup).length) note = t(cfg.spec.cnt ? 'game.overPoolNote' : cfg.spec.rep ? 'game.tooManyNote' : 'game.dupNote');
     $('input-note').textContent = note;
     $('input-note').classList.toggle('warn', !!note);
   }
@@ -243,8 +256,10 @@
   function pressKey(i) {
     if (!enabled || !cfg) return;
     recallIdx = -1;
-    if (!cfg.spec.rep) {
-      var at = input.indexOf(i);
+    var cntNow = input.filter(function (v) { return v === i; }).length;
+    if (!cfg.spec.rep || cfg.spec.cnt && cntNow >= cfg.spec.cnt[i]) {
+      /* 不重複，或已經用到項目池裡的個數：再點一下＝從最後放的那一格拿掉 */
+      var at = input.lastIndexOf(i);
       if (at >= 0) {
         /* 已用過的符號：再點一下＝從原本的格子拿掉 */
         input[at] = null; cursor = at;
@@ -302,7 +317,7 @@
     if (!S('autoSubmit')) return;
     var full = input.every(function (v) { return v != null; });
     if (!full) return;
-    var v = Core.validate(input, cfg.spec.n, cfg.spec.rep);
+    var v = Core.validate(input, cfg.spec.n, cfg.spec.rep, cfg.spec.cnt);
     if (!v.ok) { root.Sound.play('error'); shake(); return; }
     clearTimeout(submitTimer);
     submitTimer = setTimeout(submit, 140);
@@ -310,7 +325,7 @@
   function submit() {
     clearTimeout(submitTimer);
     if (!enabled || !cfg) return;
-    var v = Core.validate(input, cfg.spec.n, cfg.spec.rep);
+    var v = Core.validate(input, cfg.spec.n, cfg.spec.rep, cfg.spec.cnt);
     if (!v.ok) { root.Sound.play('error'); shake(); renderSlots(); return; }
     var code = input.slice();
     input = [null, null, null, null]; cursor = 0; recallIdx = -1;

@@ -41,7 +41,7 @@
     var spec = Core.makeSpec({ cs: t.cs, n: t.n, rep: t.rep }, 'lv:' + L);
     var boss = L % 10 === 0;
     var clues = L <= 5 ? 1 : 0;              // 最前面幾關送一個位置線索
-    return { L: L, tier: t.tier, spec: spec, boss: boss, hints: boss ? 0 : HINTS[t.tier], clues: clues, par: Math.max(2, Table.par(t.tier, t.n, t.rep) - (boss ? 1 : 0)) };
+    return { L: L, tier: t.tier, spec: spec, boss: boss, hints: boss ? 0 : HINTS[t.tier], clues: clues, par: Math.max(2, Table.par(t.tier, spec.n, t.rep) - (boss ? 1 : 0)) };
   }
 
   /** 星數：3★ 在標準步數內、2★ 多 2 步內、1★ 過關；用過提示最高 2★ */

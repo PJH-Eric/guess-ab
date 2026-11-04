@@ -68,8 +68,8 @@
     'help.goalT': '目標', 'help.goal': '對方藏了 4 個符號的密碼。每猜一次，就會告訴你幾 A 幾 B，用最少次數猜出整組密碼就能打開保險箱！',
     'help.abT': 'A 和 B 是什麼？', 'help.ab': 'A（鑰匙）＝符號對、位置也對；B（小鎖）＝符號對、但位置不對。', 'help.secret': '密碼', 'help.guess': '猜',
     'help.abWhy': '1 在第一格位置對了＝1A；2 和 3 都在密碼裡但位置錯了＝2B；5 不在密碼裡。所以是 1A2B。',
-    'help.repT': '允許重複時怎麼算？', 'help.rep': '同一個符號在密碼裡出現幾次，最多就只算幾次。',
-    'help.repWhy': '第 1 格的 A 位置對＝1A；密碼裡還有 1 個 A、1 個 B 在別的位置被猜到＝2B（多猜的 B 不會多算）。',
+    'help.repT': '允許重複時怎麼算？', 'help.rep': '可重複的局，項目池會直接列出重複的項目：池裡有兩個 A，密碼裡的 A 就最多兩個（也可能只有一個或沒有）。同一個符號在密碼裡出現幾次，最多就只算幾次。', 'help.repPool': '項目池',
+    'help.repWhy': '項目池有兩個 A，所以密碼和猜測最多都只能放兩個 A。第 1 格的 A 位置對＝1A；另一個 A 和 B 在密碼裡但位置不對＝2B；D 不在密碼裡。',
     'help.kindsT': '可以猜的種類', 'help.kinds': '除了數字，也能猜英文字母、彩色寶石、可愛圖案和現實世界的東西。每局會從裡面隨機抽出幾個當「本局項目」，開局前就看得到。',
     'help.inputT': '快速輸入', 'help.in1': '直接點下面的符號，會自動填進下一個空格，填滿 4 格就自動送出。', 'help.in2': '點已經填好的格子可以清掉重填；撥輪也能上下滑。',
     'help.in3': '電腦鍵盤：數字和字母直接打，圖案寶石看符號角落的快速鍵。', 'help.in4': 'Backspace 退格、Delete 清除、← → 換格子、Enter 送出。', 'help.in5': '按 ↑ ↓ 可以把之前的猜測帶回來，改一兩格再送出。',
@@ -116,7 +116,8 @@
     'tierHelp.4': '{a}～{b} 個項目、一定可重複，沒有提示',
     'cs.random': '隨機（每局換一種）',
     'csg.random': '隨機',
-    'spec.rep3': '可重複（同一個最多 3 次）',
+    'spec.rep3': '可重複（項目池有幾個就最多幾次）',
+    'pool.repMap': '重複的項目：', 'pool.maxN': '最多 {n} 個', 'game.overPoolNote': '超過項目池裡的個數了',
     'setup.preview': '這一局（依難度隨機）',
     'setup.rolled': '{cs}・{n} 個項目・{rep}',
     'setup.noLimit': '不限次數，比步數：{p} 次內猜中就是三星水準',
@@ -129,7 +130,7 @@
     'daily.intro': '{d}（台北時間）・五個難度各一題，全世界同一題、不能用提示，各難度分開計算連勝。',
     'daily.doneN': '{n} 次猜中',
     'daily.gaveUp': '沒打開',
-    'say.repNote': '這局可以重複，同一個最多 3 次喔。',
+    'say.repNote': '這局可以重複，項目池裡有幾個，密碼裡就最多幾個喔。',
     'say.greetSecretDefault': '已經幫你填好一組預設密碼，直接按「鎖上」或改成你想要的都可以。',
     'res.vsPar': '三星標準 {p} 次，你用了 {n} 次',
     'res.drawRounds': '15 回合結束，最好成績一樣，平手！', 'res.oppWinRounds': '{n} 的最好成績比較好',
@@ -138,14 +139,14 @@
     'res.timeUpWin': '時間到！你最接近答案，第一名',
     'race.left': '剩餘時間', 'race.finishLeft': '收尾倒數',
     'race.countN': '{n} 次',
-    'help.tiers': '難度分成幼幼、簡單、普通、困難、神話。項目數和會不會重複都由難度隨機決定，越難項目越多、越常重複（同一個最多 3 次）。',
+    'help.tiers': '難度分成幼幼、簡單、普通、困難、神話。項目數和會不會重複都由難度隨機決定，越難項目越多、越常重複。可重複時項目池會列出重複的項目（總數含重複最多 10 個，同一個最多 3 個）。',
     'room.minutes': '總時長',
     'room.minN': '{n} 分鐘', 'room.secPerTurn': '每回合 {n} 秒',
     'room.rounds': '回合上限',
     'room.roundsN': '{n} 回合',
     'room.tierHelp': '項目數與重複由難度隨機決定',
     'room.duelHelp': '輪流猜，逾時就換對方；先手猜中，後手還有一次追平機會',
-    'err.bad_code_tooMany': '同一個符號最多 3 次', 'err.too_fast': '猜太快了，慢一點點'
+    'err.bad_code_tooMany': '超過項目池裡的個數了', 'err.too_fast': '猜太快了，慢一點點'
   };
 
   var EN = {
@@ -213,8 +214,8 @@
     'help.goalT': 'Goal', 'help.goal': 'A secret code of 4 symbols is hidden. After each guess you are told how many A and B you got. Crack the whole code in as few guesses as you can!',
     'help.abT': 'What are A and B?', 'help.ab': 'A (key) = right symbol in the right slot. B (lock) = right symbol in the wrong slot.', 'help.secret': 'Code', 'help.guess': 'Guess',
     'help.abWhy': '1 is in the right slot = 1A. 2 and 3 are in the code but in the wrong slots = 2B. 5 is not in the code. So it is 1A2B.',
-    'help.repT': 'With repeats', 'help.rep': 'A symbol only counts as many times as it appears in the code.',
-    'help.repWhy': 'The first A is in place = 1A. One more A and one B are in the code but elsewhere = 2B (the extra B does not count).',
+    'help.repT': 'With repeats', 'help.rep': 'With repeats, the pool lists repeated items: two A in the pool means the code has at most two A (maybe one or none). A symbol only counts as many times as it appears in the code.', 'help.repPool': 'Pool',
+    'help.repWhy': 'The pool has two A, so the code and your guess can use at most two A. The first A is in place = 1A. The other A and the B are in the code but elsewhere = 2B. D is not in the code.',
     'help.kindsT': 'What you can guess', 'help.kinds': 'Besides numbers you can guess letters, gems, cute pictures and real-world things. Each game randomly picks a set of items, shown before you start.',
     'help.inputT': 'Fast input', 'help.in1': 'Tap a symbol and it fills the next empty slot. When all 4 are filled the guess is sent.', 'help.in2': 'Tap a filled slot to clear it. You can also swipe the dials.',
     'help.in3': 'Keyboard: type numbers and letters directly; pictures and gems use the key shown in their corner.', 'help.in4': 'Backspace deletes, Delete clears, ← → change slot, Enter guesses.', 'help.in5': 'Press ↑ ↓ to bring back an earlier guess, change a slot or two and send it again.',
@@ -261,7 +262,8 @@
     'tierHelp.4': '{a}–{b} items, always repeats, no hints',
     'cs.random': 'Random (new each game)',
     'csg.random': 'Random',
-    'spec.rep3': 'repeats (max 3 of one)',
+    'spec.rep3': 'repeats (as many as in the pool)',
+    'pool.repMap': 'Repeated items:', 'pool.maxN': 'up to {n}', 'game.overPoolNote': 'More than the pool has',
     'setup.preview': 'This game (rolled by difficulty)',
     'setup.rolled': '{cs} · {n} items · {rep}',
     'setup.noLimit': 'Unlimited guesses — crack it within {p} for 3-star form',
@@ -274,7 +276,7 @@
     'daily.intro': '{d} (Taipei time) · one puzzle per difficulty, same for everyone, no hints. Each difficulty keeps its own streak.',
     'daily.doneN': 'Solved in {n}',
     'daily.gaveUp': 'Not cracked',
-    'say.repNote': 'Repeats allowed this game — up to 3 of one symbol.',
+    'say.repNote': 'Repeats allowed — the code has at most as many of each item as the pool shows.',
     'say.greetSecretDefault': 'A default code is ready — press Lock, or change it to your own.',
     'res.vsPar': '3-star target {p}, you took {n}',
     'res.drawRounds': '15 rounds over with equal best — draw!', 'res.oppWinRounds': '{n} had the better best guess',
@@ -283,14 +285,14 @@
     'res.timeUpWin': "Time's up! You were closest — 1st place",
     'race.left': 'left', 'race.finishLeft': 'to finish',
     'race.countN': '{n} tries',
-    'help.tiers': 'Difficulties: Tiny, Easy, Normal, Hard, Mythic. The item count and repeats are rolled by difficulty — harder means more items and more repeats (max 3 of one).',
+    'help.tiers': 'Difficulties: Tiny, Easy, Normal, Hard, Mythic. The item count and repeats are rolled by difficulty — harder means more items and more repeats. With repeats the pool lists the repeated items (at most 10 in total, at most 3 of one).',
     'room.minutes': 'Duration',
     'room.minN': '{n} min', 'room.secPerTurn': '{n} s per turn',
     'room.rounds': 'Round cap',
     'room.roundsN': '{n} rounds',
     'room.tierHelp': 'Item count and repeats are rolled by difficulty',
     'room.duelHelp': 'Take turns; a timeout passes the turn. If the first player cracks it, the second gets one try to tie',
-    'err.bad_code_tooMany': 'At most 3 of the same symbol', 'err.too_fast': 'Too fast — slow down a little'
+    'err.bad_code_tooMany': 'More than the pool has', 'err.too_fast': 'Too fast — slow down a little'
   };
 
   I.add('zh-Hant', HANT);

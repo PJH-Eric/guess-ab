@@ -38,6 +38,31 @@
     return set ? set.items[ref.index] : null;
   }
   function symName(spec, i) { var it = symItem(spec, i); return it ? root.I18N.pick(it.n) : '?'; }
+  /** 含重複的項目總數（顯示用） */
+  function poolSize(spec) { return spec.size || spec.n; }
+  /**
+   * 項目池：可重複的局照次數展開（兩個 1 就畫兩個 1），下方再列一行重複對應「1 ×2」。
+   * @param {string} [cls] 外框 class（例如 'big'）
+   */
+  function poolHtml(spec, cls) {
+    var t = root.I18N.t;
+    var list = root.GuessCore.poolList(spec);
+    var html = '<div class="pool' + (cls ? ' ' + cls : '') + '">' + list.map(function (i, k) {
+      var again = k > 0 && list[k - 1] === i;
+      return '<span class="pool-sym' + (spec.cnt && spec.cnt[i] > 1 ? ' rep' : '') + (again ? ' again' : '') + '" title="' + esc(symName(spec, i)) + '">' + sym(spec, i, 'pool-svg') + '</span>';
+    }).join('') + '</div>';
+    if (spec.cnt) {
+      var reps = [];
+      for (var i = 0; i < spec.n; i++) if (spec.cnt[i] > 1) reps.push('<span class="pool-map-it"><span class="pool-sym rep">' + sym(spec, i, 'pool-svg') + '</span><b>×' + spec.cnt[i] + '</b></span>');
+      html += '<p class="pool-map"><span>' + esc(t('pool.repMap')) + '</span>' + reps.join('') + '</p>';
+    }
+    return html;
+  }
+  /** 「數字・8 個項目・可重複」 */
+  function specLine(spec) {
+    var t = root.I18N.t;
+    return t('cs.' + spec.cs) + '・' + t('spec.n', { n: poolSize(spec) }) + '・' + (spec.rep ? t('spec.rep3') : t('spec.norep'));
+  }
   /** 字元集代表圖示（選單、關卡卡片用） */
   function csIcon(cs, cls) {
     if (cs === 'digits') return root.GuessArt.svg('digits', 1, cls);
@@ -349,7 +374,7 @@
 
   root.Kit = {
     fmtTime: fmtTime, clockHtml: clockHtml, tickClocks: tickClocks,
-    esc: esc, h: h, icon: icon, sym: sym, symItem: symItem, symName: symName, csIcon: csIcon, toast: toast, Modal: Modal, menu: menu,
+    esc: esc, h: h, icon: icon, sym: sym, symItem: symItem, symName: symName, poolSize: poolSize, poolHtml: poolHtml, specLine: specLine, csIcon: csIcon, toast: toast, Modal: Modal, menu: menu,
     switchHtml: switchHtml, bindSwitch: bindSwitch, stepperHtml: stepperHtml, bindStepper: bindStepper,
     segHtml: segHtml, bindSeg: bindSeg, refreshScroll: schedule
   };
