@@ -325,12 +325,14 @@
   /** 倒數（data-until＝本機時間戳）或正數（data-since）的時鐘元素 */
   function clockHtml(kind, at, cls) {
     var ms = kind === 'until' ? at - Date.now() : Date.now() - at;
+    startClocks();
     return '<b class="clk ' + (cls || '') + '" data-' + kind + '="' + at + '">' + fmtTime(ms) + '</b>';
   }
   var clockTimer = null;
   function tickClocks() {
     var now = Date.now();
     var els = document.querySelectorAll('.clk[data-until], .clk[data-since]');
+    if (!els.length) { clearInterval(clockTimer); clockTimer = null; return; }   // 畫面上沒有時鐘就停，省電
     for (var i = 0; i < els.length; i++) {
       var el = els[i], u = el.getAttribute('data-until');
       var txt = fmtTime(u != null ? Number(u) - now : now - Number(el.getAttribute('data-since')));
@@ -338,7 +340,6 @@
     }
   }
   function startClocks() { if (!clockTimer && typeof document !== 'undefined') clockTimer = setInterval(tickClocks, 10); }
-  startClocks();
 
   root.Kit = {
     fmtTime: fmtTime, clockHtml: clockHtml, tickClocks: tickClocks,
