@@ -131,7 +131,17 @@
   }
   /** 難度文字：經典房間一律顯示「經典」 */
   function tierLabel(classic, tier) { return classic ? t('mode.classicShort') : t('tier.' + tier); }
-  function classicInfoHtml(mode) { return '<p class="classic-info">' + K.icon('lock') + '<span>' + esc(t('classic.fixed' + (mode === 'duel' ? 'Duel' : 'Race'))) + '</span></p>'; }
+  /** 經典規則卡：標題＋一條規則一顆膠囊（整顆換行，不會把一句話從中間切斷） */
+  function classicInfoHtml(mode) {
+    var items = [
+      ['hint-has', t('classic.cDigits')], ['grid', t('classic.cCount')], ['cross', t('classic.cNoRep')],
+      mode === 'duel' ? ['timer', t('room.secPerTurn', { n: 30 })] : ['timer', t('room.minN', { n: 5 })],
+      mode === 'duel' ? ['refresh', t('classic.cRounds', { n: 15 })] : ['users', t('classic.cCap', { n: 6 })]
+    ];
+    return '<div class="classic-info" role="group" aria-label="' + esc(t('classic.rulesT')) + '">' +
+      '<div class="ci-head">' + K.icon('lock') + '<b>' + esc(t('classic.rulesT')) + '</b><span class="ci-lock">' + esc(t('classic.locked')) + '</span></div>' +
+      '<ul class="ci-list">' + items.map(function (it) { return '<li>' + K.icon(it[0]) + '<span>' + esc(it[1]) + '</span></li>'; }).join('') + '</ul></div>';
+  }
   function csIco(cs) { return cs === 'random' ? K.icon('shuffle', 'menu-ico') : K.csIcon(cs, 'menu-ico'); }
   function tierSeg(id, v) { var it = []; for (var x = 0; x < Core.TIERS; x++) it.push({ value: String(x), label: t('tier.' + x) }); return K.segHtml(id, it, String(v), t('setup.tier')); }
   function openCreate() {
@@ -184,8 +194,10 @@
   }
   function settingsHtml() {
     var r = room, s = r.settings, host = r.you.host && r.status !== 'playing' && r.status !== 'setup';
-    if (!host || s.classic) {
-      return (s.classic ? classicInfoHtml(r.mode) : '') + '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.tier')) + '</dt><dd>' + esc(tierLabel(s.classic, s.tier)) + '</dd>' +
+    /* 經典房：規則卡片已列出全部設定，不再重複一份清單 */
+    if (s.classic) return classicInfoHtml(r.mode);
+    if (!host) {
+      return '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.tier')) + '</dt><dd>' + esc(tierLabel(s.classic, s.tier)) + '</dd>' +
         '<dt>' + esc(t('setup.cs')) + '</dt><dd>' + esc(t('cs.' + s.cs)) + '</dd>' +
         (r.mode === 'race' ? '<dt>' + esc(t('room.minutes')) + '</dt><dd>' + esc(t('room.minN', { n: s.minutes })) + '</dd><dt>' + esc(t('room.cap')) + '</dt><dd>' + s.cap + '</dd>'
           : '<dt>' + esc(t('room.turnSec')) + '</dt><dd>' + esc(t('room.secN', { n: s.turnSec })) + '</dd><dt>' + esc(t('room.rounds')) + '</dt><dd>' + esc(t('room.roundsN', { n: 15 })) + '</dd>') + '</dl>';
