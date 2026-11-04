@@ -411,8 +411,9 @@
     var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(t('tier.' + g.tier)) + '</span></div>' +
       '<p class="small">' + esc(t('cs.' + g.spec.cs) + '・' + t('spec.n', { n: g.spec.n }) + '・' + (g.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</p>';
     if (r.mode === 'race' && r.status === 'playing') {
-      var left = g.endsAt - now();
-      html += '<p class="race-clock' + (left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + K.clockHtml('until', Date.now() + left) + '<span>' + esc(t('race.left')) + '</span></p>';
+      /* 有人猜中後改顯示 10 秒收尾倒數 */
+      var left = (g.finishAt || g.endsAt) - now();
+      html += '<p class="race-clock' + (g.finishAt || left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + K.clockHtml('until', Date.now() + left) + '<span>' + esc(t(g.finishAt ? 'race.finishLeft' : 'race.left')) + '</span></p>';
     }
     if (r.mode === 'race') {
       html += '<ul class="race-list">' + g.players.map(function (p, i) {

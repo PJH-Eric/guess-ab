@@ -466,6 +466,7 @@
 "res.timeUp": "时间到！依最好的 A、B 与步数排名",
 "res.timeUpWin": "时间到！你最接近答案，第一名",
 "race.left": "剩余时间",
+"race.finishLeft": "收尾倒数",
 "race.countN": "{n} 次",
 "help.tiers": "难度分成幼幼、简单、普通、困难、神话。项目数和会不会重复都由难度随机决定，越难项目越多、越常重复（同一个最多 3 次）。",
 "room.minutes": "总时长",
