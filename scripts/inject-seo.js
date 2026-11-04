@@ -18,7 +18,19 @@ function validate(cfg, gaId) {
   if (cfg.title.length > 40 || cfg.description.length < 40 || cfg.description.length > 120) throw new Error('SEO 文案長度錯誤');
   if (!/^G-[A-Z0-9]+$/.test(gaId)) throw new Error('GA_MEASUREMENT_ID 格式錯誤');
   if (cfg.ogImage && !/^https:\/\//.test(cfg.ogImage)) throw new Error('ogImage 必須是 HTTPS 網址');
-  if (cfg.ogImage && !/\/assets\/images\/(seo|cover)\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 assets/images 下的 seo.webp 或 cover.webp');
+  if (cfg.ogImage && !/\/assets\/images\/(?:cover|seo)\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 WebP 遊戲封面或 SEO 分享圖');
+}
+
+// 讀 WebP 檔頭的實際尺寸（VP8／VP8L／VP8X），og:image:width／height 才不會和真實圖片不符。
+function webpSize(file) {
+  let b;
+  try { b = fs.readFileSync(file); } catch (e) { return null; }
+  if (b.length < 30 || b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WEBP') return null;
+  const kind = b.toString('ascii', 12, 16);
+  if (kind === 'VP8X') return { width: 1 + b.readUIntLE(24, 3), height: 1 + b.readUIntLE(27, 3) };
+  if (kind === 'VP8L') { const v = b.readUInt32LE(21); return { width: (v & 0x3fff) + 1, height: ((v >> 14) & 0x3fff) + 1 }; }
+  if (kind === 'VP8 ') return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff };
+  return null;
 }
 
 function inject(root, env = process.env) {
@@ -31,8 +43,11 @@ function inject(root, env = process.env) {
   if (!/<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)) throw new Error('index.html 缺少 title');
   const descriptionTag = html.match(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>/i);
   const descriptionKey = descriptionTag && descriptionTag[0].match(/data-i18n-content="([^"]+)"/);
-  // SEO 分享圖 1200×630，cover 1200×675
-  const imageHeight = cfg.ogImage ? (/\/seo\.webp$/.test(cfg.ogImage) ? '630' : '675') : '';
+  // 優先用 public/assets/images 裡圖檔的實際尺寸；檔案不在（例如只複製設定檔做檢查）時回到 1200×675。
+  const imageFile = cfg.ogImage && cfg.ogImage.match(/\/(assets\/images\/(?:cover|seo)\.webp)$/);
+  const size = (imageFile && webpSize(path.join(root, 'public', imageFile[1]))) || { width: 1200, height: 675 };
+  const imageWidth = cfg.ogImage ? String(size.width) : '';
+  const imageHeight = cfg.ogImage ? String(size.height) : '';
   // 保留界線，重複建置不會累積標籤。所有檢查完成才寫入產物。
   html = html.replace(/<!--SEO:HEAD-->[\s\S]*?<!--SEO:END-->/, MARK)
     .replace(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>\s*/gi, '')
@@ -62,7 +77,7 @@ function inject(root, env = process.env) {
     '<meta property="og:url" content="' + esc(cfg.siteUrl) + '">',
     cfg.ogImage && '<meta property="og:image" content="' + esc(cfg.ogImage) + '">',
     cfg.ogImage && '<meta property="og:image:type" content="image/webp">',
-    cfg.ogImage && '<meta property="og:image:width" content="1200">',
+    cfg.ogImage && '<meta property="og:image:width" content="' + imageWidth + '">',
     cfg.ogImage && '<meta property="og:image:height" content="' + imageHeight + '">',
     cfg.ogImage && '<meta property="og:image:alt" content="' + esc(cfg.ogImageAlt || cfg.title) + '">',
     '<meta name="twitter:card" content="' + (cfg.ogImage ? 'summary_large_image' : 'summary') + '">',
