@@ -841,3 +841,9 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
 .tier-tbl { width: 100%; min-width: 0; font-size: .88rem; }
 .tier-tbl th, .tier-tbl td { padding: 6px 4px; text-align: center; white-space: nowrap; }
 .tier-tbl .tier-badge { padding: 1px 8px; font-size: .8rem; }
+
+/* ===== 闖關格線：每段固定 10 關，欄數一律取 10 的因數（10／5／2），不留孤兒卡 ===== */
+.lv-block { container-type: inline-size; }
+.lv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (min-width: 440px) { .lv-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@container (min-width: 940px) { .lv-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
