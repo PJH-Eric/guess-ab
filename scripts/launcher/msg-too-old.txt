@@ -1,0 +1,5 @@
+
+[錯誤] 需要 Node.js 26.12.1 或更新的 26.x 修補版本。
+找到的 node 版本太舊，請安裝 Node.js 26.12.1：https://nodejs.org/
+  只想單機玩：直接用瀏覽器打開 public\index.html 就可以了
+

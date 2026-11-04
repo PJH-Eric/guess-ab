@@ -1,0 +1,5 @@
+
+找不到 Node.js。
+  想玩線上對戰：先安裝 Node.js https://nodejs.org
+  只想單機玩：直接用瀏覽器打開 public\index.html 就可以了
+

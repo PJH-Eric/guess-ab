@@ -1,66 +1,59 @@
 @echo off
 chcp 65001 >nul
-title 密碼鎖 1A2B
+title Guess AB 1A2B
 cd /d "%~dp0"
 
-rem ---- 先把 node 找出來 ----
-rem PATH 裡沒有不代表沒裝。nvm-windows 的 nodejs 捷徑壞掉時，PATH 上會只剩
-rem npm/npx 的殼，node.exe 其實還躺在各版本自己的資料夾裡，這裡就自己去翻。
+rem ASCII-only on purpose: after chcp 65001 cmd mis-reads byte offsets around
+rem labels when multibyte text precedes them. Chinese messages live in
+rem scripts\launcher\*.txt and are shown with type.
+rem Picks the first node that is 26.12.1+ (PATH, common install dirs, then nvm).
+
 set "NODE_EXE="
 set "NODE_FROM_PATH="
+set "NODE_BAD="
+set "MSG=%~dp0scripts\launcher\"
 
-for /f "delims=" %%N in ('where node 2^>nul') do if not defined NODE_EXE (
-  set "NODE_EXE=%%N"
-  set "NODE_FROM_PATH=1"
-)
+for /f "delims=" %%N in ('where node 2^>nul') do call :try "%%N" 1
+call :try "%ProgramFiles%\nodejs\node.exe"
+call :try "%ProgramFiles(x86)%\nodejs\node.exe"
+call :try "%LOCALAPPDATA%\Programs\nodejs\node.exe"
+if not defined NODE_EXE for /f "delims=" %%D in ('dir /b /a:d /o:-n "%APPDATA%\nvm\v26.*" 2^>nul') do call :try "%APPDATA%\nvm\%%D\node.exe"
 
-if not defined NODE_EXE if exist "%ProgramFiles%\nodejs\node.exe" set "NODE_EXE=%ProgramFiles%\nodejs\node.exe"
-if not defined NODE_EXE if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "NODE_EXE=%ProgramFiles(x86)%\nodejs\node.exe"
-if not defined NODE_EXE if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "NODE_EXE=%LOCALAPPDATA%\Programs\nodejs\node.exe"
+if not defined NODE_EXE goto :nonode
+if defined NODE_FROM_PATH goto :run
+type "%MSG%msg-other-node.txt"
+echo   %NODE_EXE%
+echo.
+goto :run
 
-rem nvm-windows：從新版找到舊版，這個遊戲需要 Node 26.12.1 或更新的 26.x 修補版本
-for %%M in (26) do (
-  if not defined NODE_EXE (
-    for /f "delims=" %%D in ('dir /b /a:d "%APPDATA%\nvm\v%%M.*" 2^>nul') do (
-      if not defined NODE_EXE if exist "%APPDATA%\nvm\%%D\node.exe" set "NODE_EXE=%APPDATA%\nvm\%%D\node.exe"
-    )
-  )
-)
+:try
+if defined NODE_EXE exit /b 0
+if not exist %1 exit /b 0
+%1 -e "const [a,b,c]=process.versions.node.split('.').map(Number); process.exit(a===26&&(b>12||(b===12&&c>=1))?0:1)"
+if errorlevel 1 set "NODE_BAD=%~1"
+if errorlevel 1 exit /b 0
+set "NODE_EXE=%~1"
+if "%2"=="1" set "NODE_FROM_PATH=1"
+exit /b 0
 
-if not defined NODE_EXE (
-  echo.
-  echo 找不到 Node.js。
-  echo   想玩線上對戰：先安裝 Node.js https://nodejs.org
-  echo   只想單機玩　：直接用瀏覽器打開 public\index.html 就可以了
-  echo.
-  pause
-  exit /b 1
-)
+:nonode
+if defined NODE_BAD goto :tooold
+type "%MSG%msg-no-node.txt"
+goto :stop
+:tooold
+type "%MSG%msg-too-old.txt"
+echo   found: %NODE_BAD%
+:stop
+pause
+exit /b 1
 
-"%NODE_EXE%" -e "const [major, minor, patch] = process.versions.node.split('.').map(Number); if (major !== 26 || minor < 12 || (minor === 12 && patch < 1)) process.exit(1)"
-if errorlevel 1 (
-  echo [錯誤] 需要 Node.js 26.12.1 或更新的 26.x 修補版本。
-  for /f %%V in ('"%NODE_EXE%" --version') do echo 目前版本：%%V
-  echo 請安裝 Node.js 26.12.1：https://nodejs.org/
-  echo.
-  pause
-  exit /b 1
-)
-
-if not defined NODE_FROM_PATH (
-  echo 注意：PATH 裡找不到 node，這次改用
-  echo   %NODE_EXE%
-  echo 想一勞永逸的話，用系統管理員身分開命令提示字元執行：nvm use 26.12.1
-  echo.
-)
-
-echo 正在啟動密碼鎖 1A2B...
-rem 等伺服器起來再開瀏覽器，不然第一次會開到連線失敗的頁面
+:run
+type "%MSG%msg-starting.txt"
+rem wait for the server before opening the browser
 start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & start "" http://localhost:3100"
 "%NODE_EXE%" server.js
-if errorlevel 1 (
-  echo.
-  echo 伺服器結束了。剛才按 Ctrl+C 的話這是正常的。
-  echo 這次用的 node：%NODE_EXE%
-)
+if not errorlevel 1 goto :done
+type "%MSG%msg-exited.txt"
+echo   node: %NODE_EXE%
+:done
 pause
