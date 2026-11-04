@@ -596,7 +596,7 @@
       if (!room) { if (app().screen === 'lobby') renderLobby(); return; }
       renderChatChannel(); renderChat();
       if (app().screen === 'room') renderRoom();
-      else if (app().screen === 'game') { setupKey = ''; syncGame(); }
+      else if (app().screen === 'game') syncGame();   // 不重設畫面：保留已輸入的格子與筆記
     });
     var back = null; try { back = sessionStorage.getItem(ROOM_KEY); } catch (e) { back = null; }
     if (back) setTimeout(function () { if (app().screen === 'home' && !room) enterLobby(); }, 0);
