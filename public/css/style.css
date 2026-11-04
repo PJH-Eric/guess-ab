@@ -629,8 +629,9 @@ svg.res-mascot { width: 76px; height: 76px; flex: none; }
 
 /* ---------- 大廳 ---------- */
 .net-status { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); background: #fff; font-weight: 800; margin-bottom: 14px; flex-wrap: wrap; }
-.net-status.ok { border-color: var(--mint); background: #F2FFFA; color: var(--link); }
-/* 大廳在線人數：放在「已連線」這列的最右邊，窄版自動換到下一行 */
+.net-status.ok { border-color: var(--mint); background: #F2FFFA; color: var(--link); flex-wrap: nowrap; }
+.net-status.ok > span:not(.online-count) { min-width: 0; white-space: nowrap; }
+/* 已連線與在線人數維持同一行，人數徽章靠右。 */
 .net-status > .online-count { flex: none; min-width: 0; }
 .online-count { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 2px 12px; border-radius: 999px; border: 2px solid var(--mint); background: var(--paper); color: var(--ink); font-weight: 900; white-space: nowrap; }
 .online-count svg.ico { width: 18px; height: 18px; color: var(--mint-d); }
@@ -769,6 +770,8 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
   .hero-mascot { width: 120px !important; height: 120px !important; }
   .field.row2 { grid-template-columns: 1fr; }
   .lobby-actions { grid-template-columns: 1fr; }
+  .net-status.ok { gap: 6px; padding: 10px; font-size: .875rem; }
+  .net-status.ok .online-count { gap: 4px; padding: 2px 8px; }
   .room-row { grid-template-columns: 40px 1fr; grid-template-areas: "cs main" "meta meta" "act act"; }
   .rr-act { justify-content: stretch; } .rr-act .btn { flex: 1; }
   .safe { padding: 8px 8px 6px; border-radius: 20px; }
