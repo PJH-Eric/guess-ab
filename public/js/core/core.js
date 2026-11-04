@@ -92,6 +92,9 @@
     var rep = r() < TIER_REP[tier];
     return makeSpec({ cs: resolveCs(cs, r), n: n, rep: rep }, seed);
   }
+  /** 經典模式：寫死數字 0～9 全部 10 個、不重複（不看難度、不能調整） */
+  var CLASSIC = { cs: 'digits', n: 10, rep: false };
+  function classicSpec(seed) { return makeSpec(CLASSIC, seed); }
   var CHARSET_IDS = ['digits', 'letters', 'gems'].concat(PACKS.map(function (p) { return 'pack-' + p; })).concat(['mix']);
 
   function charset(id) { return CHARSETS[id] || null; }
@@ -290,7 +293,7 @@
   }
 
   return {
-    LEN: LEN, MAX_SAME: MAX_SAME, N_MIN: N_MIN, N_MAX: N_MAX, TIERS: TIERS, TIER_N: TIER_N, TIER_REP: TIER_REP, tierSpec: tierSpec, resolveCs: resolveCs,
+    LEN: LEN, MAX_SAME: MAX_SAME, N_MIN: N_MIN, N_MAX: N_MAX, TIERS: TIERS, TIER_N: TIER_N, TIER_REP: TIER_REP, tierSpec: tierSpec, resolveCs: resolveCs, CLASSIC: CLASSIC, classicSpec: classicSpec,
     PACKS: PACKS, CUTE_PACKS: CUTE_PACKS, REAL_PACKS: REAL_PACKS, PACK_SIZE: PACK_SIZE,
     CHARSETS: CHARSETS, CHARSET_IDS: CHARSET_IDS,
     hashString: hashString, mulberry32: mulberry32, rngFrom: rngFrom, randomSeed: randomSeed,

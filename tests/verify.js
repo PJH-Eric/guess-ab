@@ -436,11 +436,40 @@ test('防狂送：250ms 內第二次猜測被擋；聊天保留 <3 這類符號�
 });
 test('房間設定驗證：非法值回到預設（普通、數字、5 分鐘、30 秒、6 人）', () => {
   const s = normSettings('race', { tier: 9, cs: 'nope', minutes: 7, turnSec: 7, cap: 99 });
-  assert.deepStrictEqual(s, { tier: 2, cs: 'digits', minutes: 5, turnSec: 30, cap: 6 });
+  assert.deepStrictEqual(s, { classic: false, tier: 2, cs: 'digits', minutes: 5, turnSec: 30, cap: 6 });
   const r = normSettings('race', { tier: 4, cs: 'random', minutes: 10 });
   assert.strictEqual(r.tier, 4); assert.strictEqual(r.cs, 'random'); assert.strictEqual(r.minutes, 10);
   assert.strictEqual(normSettings('duel', { turnSec: 60 }).turnSec, 60);
   assert.strictEqual(normSettings('duel', {}).cap, 2);
+});
+test('經典模式：數字 0～9 全部 10 個、不重複、不受難度影響', () => {
+  for (let i = 0; i < 50; i++) {
+    const sp = Core.classicSpec('c' + i);
+    assert.deepStrictEqual([sp.cs, sp.n, sp.size, sp.rep, sp.cnt], ['digits', 10, 10, false, undefined]);
+    assert.deepStrictEqual(sp.pool, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const sec = Core.secretFor(sp);
+    assert.strictEqual(new Set(sec).size, 4, '答案不重複');
+  }
+  /* 其他模式不受影響：同 seed 的一般局規格不變 */
+  assert.deepStrictEqual(Core.tierSpec(4, 'letters', 'same'), Core.tierSpec(4, 'letters', 'same'));
+});
+test('經典房間：設定寫死，房主改什麼都不會變；每局都是數字 0～9 不重複', () => {
+  const fixed = { classic: true, tier: 2, cs: 'digits', minutes: 5, turnSec: 30, cap: 6 };
+  assert.deepStrictEqual(normSettings('race', { classic: true, tier: 4, cs: 'gems', minutes: 10, cap: 3 }), fixed);
+  assert.deepStrictEqual(normSettings('race', { tier: 0, cs: 'letters', classic: false }, fixed), fixed, '建好後不能改');
+  assert.strictEqual(normSettings('duel', { classic: true, turnSec: 60 }).turnSec, 30);
+  assert.strictEqual(normSettings('race', { classic: 'yes' }).classic, false, '只有 true 才算經典');
+  assert.strictEqual(normSettings('race', { classic: true }, { classic: false, tier: 1, cs: 'gems', minutes: 3, turnSec: 15, cap: 4 }).classic, false, '自訂房不能中途變經典');
+  const w = fakeWorld(), a = w.P('a'), b = w.P('b');
+  const room = w.hub.create(a, { mode: 'race', settings: { classic: true, tier: 4, cs: 'gems' } });
+  w.hub.settings(a, { tier: 0, cs: 'letters', minutes: 10 });
+  assert.deepStrictEqual(room.settings, fixed);
+  w.hub.join(b, { roomId: room.id });
+  w.hub.setReady(b, true); w.hub.start(a);
+  const sp = room.game.spec;
+  assert.deepStrictEqual([sp.cs, sp.n, sp.rep, sp.pool.join('')], ['digits', 10, false, '0123456789']);
+  assert.strictEqual(room.game.classic, true);
+  assert.ok(w.hub.listRooms().some(r => r.id === room.id && r.classic === true), '大廳列表標示經典');
 });
 test('競速選「隨機」字元集時，伺服器每局會抽出實際的字元集', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');

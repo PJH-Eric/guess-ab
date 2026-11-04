@@ -134,6 +134,7 @@
   /* ---------- 單機選單 ---------- */
   function renderSolo() {
     var items = [
+      ['classic', 'lock', 'solo.classic', 'solo.classicSub'],
       ['guess', 'key', 'solo.guess', 'solo.guessSub'],
       ['levels', 'map', 'solo.levels', 'solo.levelsSub'],
       ['daily', 'calendar', 'solo.daily', 'solo.dailySub']
@@ -145,7 +146,8 @@
     $('scr-solo').querySelectorAll('[data-m]').forEach(function (b) {
       b.addEventListener('click', function () {
         var m = b.getAttribute('data-m');
-        if (m === 'levels') show('levels');
+        if (m === 'classic') root.Solo.start({ mode: 'classic' });
+        else if (m === 'levels') show('levels');
         else if (m === 'daily') show('daily');
         else openSetup();
       });
@@ -302,7 +304,7 @@
       sec('enter', 'help.inputT', '<ul class="tips"><li>' + esc(t('help.in1')) + '</li><li>' + esc(t('help.in2')) + '</li><li>' + esc(t('help.in3')) + '</li><li>' + esc(t('help.in4')) + '</li><li>' + esc(t('help.in5')) + '</li></ul>') +
       sec('pencil', 'help.notesT', '<p>' + esc(t('help.notes')) + '</p>') +
       sec('question', 'help.hintT', '<p>' + esc(t('help.hint')) + '</p>') +
-      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li></ul>') +
+      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m0')) + '</li><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li></ul>') +
       sec('star', 'help.tierT', '<p>' + esc(t('help.tiers')) + '</p>' + tierTable()) +
       sec('users', 'help.onlineT', '<ul class="tips"><li>' + esc(t('help.o1')) + '</li><li>' + esc(t('help.o2')) + '</li><li>' + esc(t('help.o3')) + '</li></ul>') +
       '<div class="page-actions"><button type="button" class="btn primary big" id="help-go">' + K.icon('play') + '<span>' + esc(t('help.go')) + '</span></button></div></div>';

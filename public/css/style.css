@@ -798,6 +798,11 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .t2 { --tc: #C3DDFA; --tl: #F1F7FF; }
 .t3 { --tc: #CDBEF0; --tl: #F5F1FF; }
 .t4 { --tc: #2F2763; --tk: #FFD970; --tl: #EEEAF8; }
+.tier-badge.classic { --tc: #FFE3A3; }
+.pill.classic { background: #FFE3A3; display: inline-flex; align-items: center; gap: 3px; }
+.pill.classic svg.ico { width: 14px; height: 14px; }
+.classic-info { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; background: #FFF6DA; border: 2px dashed var(--gold-d); border-radius: 12px; font-weight: 700; font-size: .88rem; }
+.classic-info svg.ico { flex: none; color: #8A5E00; }
 .lv-scroll { flex: 1 1 auto; min-height: 0; padding: 2px 10px 16px 2px; }
 .lv-block { margin-bottom: 18px; }
 .lv-block-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 8px; font-size: 1rem; }

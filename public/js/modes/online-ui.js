@@ -72,7 +72,7 @@
     var busy = r.status !== 'waiting';
     return '<li class="room-row">' +
       '<span class="rr-cs">' + (r.cs === 'random' ? K.icon('shuffle', 'rr-svg') : K.csIcon(r.cs, 'rr-svg')) + '</span>' +
-      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(t('tier.' + r.tier)) + '・' + esc(r.cs === 'random' ? t('csg.random') : t('cs.' + r.cs)) +
+      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(tierLabel(r.classic, r.tier)) + '・' + esc(r.cs === 'random' ? t('csg.random') : t('cs.' + r.cs)) +
         (r.mode === 'race' && r.minutes ? '・' + esc(t('room.minN', { n: r.minutes })) : r.mode === 'duel' && r.turnSec ? '・' + esc(t('room.secPerTurn', { n: r.turnSec })) : '') + '</small></span>' +
       '<span class="rr-meta"><i>' + K.icon('users') + r.players + '/' + r.cap + '</i><i>' + K.icon('eye') + r.spectators + '</i><i class="st st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</i></span>' +
       '<span class="rr-act">' +
@@ -129,19 +129,26 @@
     list.push({ value: 'mix', label: t('cs.mix'), icon: K.csIcon('mix', 'menu-ico'), group: t('csg.mix') });
     return list;
   }
+  /** 難度文字：經典房間一律顯示「經典」 */
+  function tierLabel(classic, tier) { return classic ? t('mode.classicShort') : t('tier.' + tier); }
+  function classicInfoHtml(mode) { return '<p class="classic-info">' + K.icon('lock') + '<span>' + esc(t('classic.fixed' + (mode === 'duel' ? 'Duel' : 'Race'))) + '</span></p>'; }
   function csIco(cs) { return cs === 'random' ? K.icon('shuffle', 'menu-ico') : K.csIcon(cs, 'menu-ico'); }
   function tierSeg(id, v) { var it = []; for (var x = 0; x < Core.TIERS; x++) it.push({ value: String(x), label: t('tier.' + x) }); return K.segHtml(id, it, String(v), t('setup.tier')); }
   function openCreate() {
     saveName();
-    var st = { mode: 'race', tier: 2, cs: 'digits' };
+    var st = { mode: 'race', tier: 2, cs: 'digits', classic: false };
     var body = doc.createElement('div');
     body.className = 'form create-form';
     function draw() {
       body.innerHTML = '<div class="field"><span class="f-label">' + esc(t('create.mode')) + '</span>' + K.segHtml('cr-mode', [{ value: 'race', label: t('mode.raceOnline'), icon: K.icon('flag') }, { value: 'duel', label: t('mode.duelOnline'), icon: K.icon('users') }], st.mode, t('create.mode')) +
         '<small class="f-help">' + esc(t('create.' + st.mode + 'Help')) + '</small></div>' +
+        '<div class="field"><span class="f-label">' + esc(t('create.kind')) + '</span>' + K.segHtml('cr-kind', [{ value: 'classic', label: t('mode.classicShort'), icon: K.icon('lock') }, { value: 'custom', label: t('create.custom'), icon: K.icon('gear') }], st.classic ? 'classic' : 'custom', t('create.kind')) + '</div>' +
+        (st.classic ? classicInfoHtml(st.mode) :
         '<div class="field"><span class="f-label">' + esc(t('setup.tier')) + '</span>' + tierSeg('cr-tier', st.tier) + '</div>' +
-        '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="cr-cs" aria-haspopup="listbox" aria-expanded="false">' + csIco(st.cs) + '<span>' + esc(t('cs.' + st.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>';
+        '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="cr-cs" aria-haspopup="listbox" aria-expanded="false">' + csIco(st.cs) + '<span>' + esc(t('cs.' + st.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>');
       K.bindSeg(body.querySelector('#cr-mode'), function (v) { st.mode = v; draw(); });
+      K.bindSeg(body.querySelector('#cr-kind'), function (v) { st.classic = v === 'classic'; draw(); });
+      if (st.classic) return;
       K.bindSeg(body.querySelector('#cr-tier'), function (v) { st.tier = Number(v); });
       body.querySelector('#cr-cs').addEventListener('click', function () {
         K.menu(body.querySelector('#cr-cs'), { items: csMenuItems(), value: st.cs, wide: true, onPick: function (v) { st.cs = v; draw(); body.querySelector('#cr-cs').focus(); } });
@@ -150,7 +157,7 @@
     draw();
     K.Modal({ title: t('lobby.create'), body: body, actions: [
       { label: t('common.cancel'), kind: 'ghost' },
-      { label: t('create.go'), kind: 'primary', icon: 'plus', onClick: function () { Net.send({ type: 'create', mode: st.mode, name: myName(), avatar: avatarSel, settings: { tier: st.tier, cs: st.cs } }); } }] });
+      { label: t('create.go'), kind: 'primary', icon: 'plus', onClick: function () { Net.send({ type: 'create', mode: st.mode, name: myName(), avatar: avatarSel, settings: st.classic ? { classic: true } : { tier: st.tier, cs: st.cs } }); } }] });
   }
 
   /* ---------- 房間 ---------- */
@@ -177,8 +184,8 @@
   }
   function settingsHtml() {
     var r = room, s = r.settings, host = r.you.host && r.status !== 'playing' && r.status !== 'setup';
-    if (!host) {
-      return '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.tier')) + '</dt><dd>' + esc(t('tier.' + s.tier)) + '</dd>' +
+    if (!host || s.classic) {
+      return (s.classic ? classicInfoHtml(r.mode) : '') + '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.tier')) + '</dt><dd>' + esc(tierLabel(s.classic, s.tier)) + '</dd>' +
         '<dt>' + esc(t('setup.cs')) + '</dt><dd>' + esc(t('cs.' + s.cs)) + '</dd>' +
         (r.mode === 'race' ? '<dt>' + esc(t('room.minutes')) + '</dt><dd>' + esc(t('room.minN', { n: s.minutes })) + '</dd><dt>' + esc(t('room.cap')) + '</dt><dd>' + s.cap + '</dd>'
           : '<dt>' + esc(t('room.turnSec')) + '</dt><dd>' + esc(t('room.secN', { n: s.turnSec })) + '</dd><dt>' + esc(t('room.rounds')) + '</dt><dd>' + esc(t('room.roundsN', { n: 15 })) + '</dd>') + '</dl>';
@@ -219,7 +226,7 @@
     var screenScroll = $('scr-room').scrollTop;
     var focusSel = focusSelector(doc.activeElement);
     var html = '<div class="room-wrap"><div class="room-side" id="room-side-slot"></div><div class="room-main scroll"><div class="page room">' +
-      '<div class="room-head"><h1 class="page-title">' + esc(t('room.title', { id: r.id })) + '</h1><span class="pill">' + esc(t('mode.' + r.mode + 'Online')) + '</span><span class="pill st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</span></div>' +
+      '<div class="room-head"><h1 class="page-title">' + esc(t('room.title', { id: r.id })) + '</h1><span class="pill">' + esc(t('mode.' + r.mode + 'Online')) + '</span>' + (r.settings.classic ? '<span class="pill classic">' + K.icon('lock') + esc(t('mode.classicShort')) + '</span>' : '') + '<span class="pill st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</span></div>' +
       '<p class="room-tip">' + esc(t(you.role === 'spectator' ? 'room.tipSpec' : r.mode === 'duel' ? 'room.tipDuel' : 'room.tipRace')) + '</p>' +
       '<ul class="seats">' + seatsHtml() + '</ul>' +
       '<div class="room-actions">' +
@@ -496,7 +503,7 @@
   function renderGameSummary() {
     var r = room, g = r.game; if (!g) return;
     var you = r.you;
-    var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(t('tier.' + g.tier)) + '</span></div>' +
+    var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(tierLabel(g.classic, g.tier)) + '</span></div>' +
       '<p class="small">' + esc(K.specLine(g.spec)) + '</p>';
     if (r.mode === 'race' && r.status === 'playing') {
       /* 有人猜中後改顯示 10 秒收尾倒數 */

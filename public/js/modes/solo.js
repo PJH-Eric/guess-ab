@@ -29,6 +29,7 @@
   function titleOf(c) {
     if (c.mode === 'level') return t('level.title', { n: c.info.L });
     if (c.mode === 'daily') return t('mode.daily') + '・' + tierName(c.tier);
+    if (c.mode === 'classic') return t('mode.classic');
     return t('mode.guess');
   }
 
@@ -37,7 +38,7 @@
     var c = cur; if (!c) return;
     var html = '<div class="sum-mode"><b>' + K.esc(c.title) + '</b><span>' + K.esc(c.sub || '') + '</span></div>';
     html += '<dl class="sum-list">' +
-      '<dt>' + t('sum.tier') + '</dt><dd><span class="tier-badge t' + c.tier + '">' + K.esc(tierName(c.tier)) + '</span></dd>' +
+      '<dt>' + t('sum.tier') + '</dt><dd>' + (c.classic ? '<span class="tier-badge classic">' + K.esc(t('mode.classicShort')) + '</span>' : '<span class="tier-badge t' + c.tier + '">' + K.esc(tierName(c.tier)) + '</span>') + '</dd>' +
       '<dt>' + t('sum.spec') + '</dt><dd>' + K.esc(specLine(c.spec)) + '</dd>' +
       '<dt>' + t('sum.par') + '</dt><dd>' + t('sum.parN', { n: c.par }) + '</dd>' +
       '</dl>';
@@ -95,6 +96,15 @@
       c.practice = !!root.Store.dailyDone(date, d.tier);
       c.sub = date + (c.practice ? '・' + t('daily.practice') : '');
       c.noHintNote = t('daily.noHint');
+    } else if (o.mode === 'classic') {
+      /* 經典模式：數字 0～9 不重複，設定寫死；不用提示、不算進各難度統計 */
+      c.classic = true;
+      c.spec = Core.classicSpec('classic:' + Core.randomSeed());
+      c.tier = null;
+      c.par = Table.par(2, c.spec.n, false);
+      c.hintsLeft = 0;
+      c.noHintNote = t('classic.noHint');
+      c.sub = t('classic.sub');
     } else {
       c.spec = o.spec || Core.tierSpec(o.tier, o.cs, o.seed || ('solo:' + Core.randomSeed()));
       c.tier = o.tier;
@@ -119,7 +129,7 @@
     G.setInput(true);
     G.setCounter(t('game.count', { n: 0 }));
     refresh();
-    if (root.GameAnalytics) root.GameAnalytics.start({ mode: 'solo', difficulty: 't' + c.tier, variant: c.spec.cs }, c.spec.seed);
+    if (root.GameAnalytics) root.GameAnalytics.start({ mode: 'solo', difficulty: c.classic ? 'classic' : 't' + c.tier, variant: c.spec.cs }, c.spec.seed);
   }
 
   function onSubmit(code) {
