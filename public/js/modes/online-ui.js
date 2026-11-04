@@ -387,6 +387,52 @@
     var n = 0;
     return (hist || []).map(function (h) { n++; return h.timeout ? { n: n, timeout: true } : { n: n, guess: h.guess, a: h.a, b: h.b }; });
   }
+  /* ---------- 觀戰看板：每位玩家一張卡（名次、次數、最好的 A／B、最近 3 筆），格子顯示全場最新一筆 ---------- */
+  function bestOf(hist) {
+    var best = null;
+    (hist || []).forEach(function (h) { if (h.timeout || !h.guess) return; if (!best || h.a > best.a || h.a === best.a && h.b > best.b) best = h; });
+    return best;
+  }
+  function watchBoard(r, g, spec) {
+    var list = [], latest = null;
+    g.players.forEach(function (p, i) {
+      if (!p) return;
+      var hist = (p.hist || []).filter(function (h) { return !h.timeout && h.guess; });
+      var best = r.mode === 'race' && p.bestA != null ? { a: p.bestA, b: p.bestB } : bestOf(hist);
+      var last = hist[hist.length - 1];
+      if (last && (!latest || (last.t || 0) >= (latest.h.t || 0))) latest = { h: last, seat: i };
+      list.push({ seat: i, p: p, hist: hist, best: best, count: p.count || hist.length });
+    });
+    /* 名次：猜中的在前（次數少的優先），再比最好的 A、B，最後比次數 */
+    var ranked = list.slice().sort(function (x, y) {
+      if (!!x.p.solved !== !!y.p.solved) return x.p.solved ? -1 : 1;
+      if (x.p.solved) return x.count - y.count;
+      var xa = x.best ? x.best.a : -1, ya = y.best ? y.best.a : -1;
+      if (xa !== ya) return ya - xa;
+      var xb = x.best ? x.best.b : -1, yb = y.best ? y.best.b : -1;
+      if (xb !== yb) return yb - xb;
+      return x.count - y.count;
+    });
+    var setup = r.mode === 'duel' && (g.phase === 'setup' || r.status === 'setup');
+    var cards = ranked.map(function (x, k) {
+      var p = x.p, seat = r.seats[x.seat];
+      var st = p.solved ? ['ok', 'trophy', t('watch.solved')] : p.out ? ['out', 'exit', t('watch.out')] :
+        setup ? (p.locked ? ['ok', 'lock', t('duel.locked')] : ['wait', 'pencil', t('duel.setting')]) :
+        r.mode === 'duel' && g.turn === x.seat ? ['turn', 'timer', t('watch.turn')] : null;
+      var rows = x.hist.slice(-3).reverse().map(function (h) {
+        return '<li class="wb-row' + (h === (latest && latest.h) ? ' new' : '') + '"><span class="wb-code">' + h.guess.map(function (v) { return '<span class="h-sym">' + K.sym(spec, v, 'hist-sym') + '</span>'; }).join('') + '</span><span class="h-fb">' + G.fbHtml(h.a, h.b) + '</span></li>';
+      }).join('');
+      return '<article class="wb-card' + (k === 0 && !setup && x.best ? ' lead' : '') + (p.out ? ' gone' : '') + (st ? ' st-' + st[0] : '') + '">' +
+        '<header class="wb-head"><span class="wb-rank">' + (setup ? '' : k + 1) + '</span>' + root.GuessArt.svg('avatars', (seat && seat.avatar) || 0, 'wb-av') +
+        '<b class="wb-name">' + esc(playerName(x.seat)) + '</b>' + (st ? '<span class="wb-st">' + K.icon(st[1]) + esc(st[2]) + '</span>' : '') + '</header>' +
+        '<dl class="wb-stats"><div><dt>' + esc(t('watch.count')) + '</dt><dd>' + x.count + '</dd></div><div><dt>' + esc(t('watch.best')) + '</dt><dd>' + (x.best ? G.fbHtml(x.best.a, x.best.b) : '—') + '</dd></div></dl>' +
+        (rows ? '<ol class="wb-rows">' + rows + '</ol>' : '<p class="wb-empty">' + esc(t(setup ? 'watch.setting' : 'watch.none')) + '</p>') +
+        '</article>';
+    }).join('');
+    var html = '<h2 class="wb-title">' + K.icon('eye') + '<span>' + esc(t('watch.title')) + '</span></h2><div class="wb-grid n' + ranked.length + '">' + cards + '</div>';
+    var note = latest ? t('watch.latest', { n: playerName(latest.seat), a: latest.h.a, b: latest.h.b }) : t(setup ? 'watch.setting' : 'watch.waiting');
+    G.setWatch(html, latest ? latest.h.guess : null, note);
+  }
   function syncGame() {
     var r = room, g = r.game;
     if (!g) return;
@@ -440,7 +486,8 @@
       }
     }
     G.setTabs(tabs, true);
-    G.setInput(canInput, why);
+    G.setInput(canInput, you.role === 'spectator' && r.status !== 'finished' ? '' : why);
+    if (you.role === 'spectator' && r.status !== 'finished') watchBoard(r, g, spec); else G.setWatch(null);
     G.setCounter(counter);
     G.setTimer(deadline, total, clockOffset);
     renderGameSummary();

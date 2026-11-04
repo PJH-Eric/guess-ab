@@ -432,6 +432,7 @@
     input = [null, null, null, null]; cursor = 0; recallIdx = -1;
     notes = new Array(c.spec.n).fill(0);
     tabs = []; activeTab = 0; lastSeenCount = 0;
+    setWatch(null);
     var safe = $('safe');
     safe.setAttribute('data-tier', c.tier == null ? 'free' : String(c.tier));
     safe.setAttribute('data-purpose', c.purpose || 'guess');
@@ -445,6 +446,25 @@
     renderSlots();
     renderHistory();
     showTab('play');
+  }
+  /**
+   * 觀戰模式：輸入區換成即時戰況看板，格子顯示最新一筆猜測。
+   * @param {string|null} html  看板內容；null＝關閉觀戰模式
+   * @param {number[]} [code]   要顯示在格子上的最新猜測
+   * @param {string} [note]     格子下方的說明（誰剛猜了幾 A 幾 B）
+   */
+  var watchHtml = '';
+  function setWatch(html, code, note) {
+    var on = html != null && !!cfg;
+    $('pad').classList.toggle('watching', on);
+    $('safe').classList.toggle('watching', on);
+    $('watch').hidden = !on;
+    if (!on) { $('watch').innerHTML = ''; watchHtml = ''; return; }
+    if (watchHtml !== html) { watchHtml = html; $('watch').innerHTML = html; }
+    input = code ? code.slice() : [null, null, null, null];
+    renderSlots();
+    $('input-note').textContent = note || '';
+    $('input-note').classList.remove('warn');
   }
   function setInput(on, why) {
     enabled = !!on && !!cfg;
@@ -598,7 +618,7 @@
   }
 
   root.GameView = {
-    init: init, setup: setup, setInput: setInput, setTabs: setTabs, setCounter: setCounter, setTimer: setTimer,
+    init: init, setup: setup, setInput: setInput, setWatch: setWatch, setTabs: setTabs, setCounter: setCounter, setTimer: setTimer,
     say: say, feedback: feedback, setNotes: setNotes, getNotes: getNotes, showTab: showTab, choose: choose,
     recall: recall, keyLabel: keyLabel, fbHtml: fbHtml, rowHtml: rowHtml,
     get cfg() { return cfg; }, get input() { return input.slice(); }, get enabled() { return enabled; },

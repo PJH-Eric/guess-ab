@@ -397,6 +397,61 @@ svg.av-mini { width: 28px; height: 28px; }
 .pad { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow); padding: 10px; position: relative; }
 .pad.locked::after { content: attr(data-why); position: absolute; inset: 0; border-radius: 16px; background: rgba(255, 251, 243, .78); display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; font-weight: 900; font-size: 1.05rem; pointer-events: none; }
 .pad.locked[data-why=""]::after { content: none; }
+/* ---------- 觀戰看板：輸入區換成每位玩家的即時戰況 ---------- */
+.pad.watching #keys, .pad.watching .pad-actions, .pad.watching #recent { display: none !important; }
+.pad.watching::after { content: none !important; }
+.safe.watching .wheel .up, .safe.watching .wheel .down { visibility: hidden; }
+.safe.watching .wheel { opacity: 1; }
+.watch { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px; }
+.wb-title { display: flex; align-items: center; gap: 6px; margin: 0; font-size: .95rem; font-weight: 900; color: var(--ink); }
+.wb-title svg.ico { width: 20px; height: 20px; color: var(--mint-d); }
+.wb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; align-content: start; }
+.wb-grid.n2 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.wb-card { position: relative; background: #fff; border: 2.5px solid var(--line); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 3px 0 var(--line); transition: border-color .2s; }
+.wb-card.lead { border-color: var(--gold-d); box-shadow: 0 3px 0 var(--gold-d); background: linear-gradient(180deg, #FFF8E4, #fff 60%); }
+.wb-card.st-ok { border-color: var(--green); box-shadow: 0 3px 0 var(--green); background: linear-gradient(180deg, #EAF8EE, #fff 60%); }
+.wb-card.st-turn { border-color: var(--mint-d); box-shadow: 0 0 0 3px var(--mint-l), 0 3px 0 var(--mint-d); }
+.wb-card.gone { opacity: .6; }
+.wb-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.wb-rank { flex: none; min-width: 24px; height: 24px; border-radius: 50%; background: var(--bg2); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: .8rem; color: var(--ink-soft); }
+.wb-rank:empty { display: none; }
+.wb-card.lead .wb-rank { background: var(--gold); color: var(--ink); }
+svg.wb-av { flex: none; width: 34px; height: 34px; }
+.wb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
+.wb-st { flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: .74rem; font-weight: 900; padding: 2px 8px; border-radius: 999px; background: var(--bg2); color: var(--ink-soft); }
+.wb-st svg.ico { width: 14px; height: 14px; }
+.st-ok .wb-st { background: var(--green); color: #fff; }
+.st-turn .wb-st { background: var(--mint-d); color: #fff; }
+.st-out .wb-st { background: #E7ECF1; }
+.wb-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
+.wb-stats > div { background: var(--bg2); border-radius: 10px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 32px; }
+.wb-stats dt { font-size: .74rem; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.wb-stats dd { margin: 0; font-weight: 900; font-variant-numeric: tabular-nums; display: flex; align-items: center; }
+.wb-stats .h-fb, .wb-row .h-fb { flex-direction: row; align-items: center; gap: 4px; }
+.wb-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 6px; border-radius: 10px; background: var(--paper); }
+.wb-row.new { background: var(--mint-l); animation: wb-pop .5s ease; }
+.wb-code { display: flex; gap: 3px; }
+.wb-code .h-sym { width: 28px; height: 28px; }
+.wb-empty { margin: 0; padding: 8px; text-align: center; font-size: .82rem; font-weight: 700; color: var(--ink-soft); background: var(--paper); border-radius: 10px; }
+@media (max-width: 560px) {
+  .wb-grid, .wb-grid.n2 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+  .wb-card { padding: 7px; gap: 6px; border-radius: 13px; }
+  svg.wb-av { width: 26px; height: 26px; }
+  .wb-name { font-size: .88rem; }
+  .wb-head { gap: 5px; flex-wrap: wrap; }
+  .wb-rank { min-width: 20px; height: 20px; font-size: .72rem; }
+  .wb-st { font-size: .68rem; padding: 1px 6px; }
+  .wb-stats { grid-template-columns: 1fr; gap: 4px; }
+  .wb-stats > div { min-height: 26px; padding: 2px 6px; }
+  .wb-code .h-sym { width: 20px; height: 20px; }
+  .wb-row { padding: 2px 4px; gap: 4px; }
+  .wb-row .h-fb { font-size: .78rem; }
+  .watch .fb { display: none; }
+  .watch .fb-text { min-width: 0; }
+}
+@keyframes wb-pop { from { transform: scale(.96); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wb-row.new { animation: none; } }
 .keys { --cols: 5; --ks: 64px; display: grid; grid-template-columns: repeat(var(--cols), var(--ks)); grid-auto-rows: var(--ks); justify-content: center; gap: 8px; align-content: start; flex: 1 1 auto; min-height: 0; padding: 2px 6px 6px 2px; }
 .key {
   position: relative; width: var(--ks); height: var(--ks); min-height: 0; border-radius: 14px; border: 2.5px solid var(--ink); background: #fff;
