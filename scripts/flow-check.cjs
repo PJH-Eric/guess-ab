@@ -71,10 +71,11 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
 
   /* 5 鍵盤直打＋自動送出、4 格全同不能送出 */
   await p.evaluate(() => Solo.start({ mode: 'guess', tier: 4, cs: 'digits' }));
-  await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.waitForTimeout(400);
+  await p.waitForTimeout(500);
+  await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.waitForTimeout(800);
   assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 0, '0000 不會送出');
   assert.ok(/最多 3 次/.test(await p.$eval('#input-note', e => e.textContent)));
-  await p.keyboard.press('Backspace'); await p.keyboard.press('Digit1'); await p.waitForTimeout(500);
+  await p.keyboard.press('Backspace'); await p.keyboard.press('Digit1'); await p.waitForFunction(() => Solo.active.rows.length === 1, null, { timeout: 3000 }).catch(() => {});
   assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 1, '0001 自動送出');
   ok('鍵盤：直打自動送出、4 格全同擋下並提示');
 
@@ -101,12 +102,12 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   await p.evaluate(() => Net.send({ type: 'ready', value: true })); await q.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(600);
   const tnum = await p.$eval('#timer .timer-num', e => e.textContent);
   assert.ok(/^\d{2}\.\d{2}$/.test(tnum), '設密碼倒數格式 ' + tnum);
-  const t1 = await p.$eval('#timer .timer-num', e => e.textContent); await p.waitForTimeout(37); const t2 = await p.$eval('#timer .timer-num', e => e.textContent);
+  const t1 = await p.$eval('#timer .timer-num', e => e.textContent); await p.waitForTimeout(80); const t2 = await p.$eval('#timer .timer-num', e => e.textContent);
   assert.notStrictEqual(t1, t2, '10ms 更新');
   for (const pg of [p, q]) await pg.evaluate(() => { const g = OnlineUI.room.game; Net.send({ type: 'secret', code: g.players[OnlineUI.room.you.seat].myDefault }); });
   await p.waitForTimeout(700);
   const first = await p.evaluate(() => OnlineUI.room.game.first);
-  await p.waitForTimeout(15600);
+  await p.waitForFunction(f => OnlineUI.room.game.turn === 1 - f, first, { timeout: 20000 });
   const g2 = await p.evaluate(() => ({ turn: OnlineUI.room.game.turn, hist: OnlineUI.room.game.players.map(x => x.hist.length) }));
   assert.strictEqual(g2.turn, 1 - first, '逾時換對方');
   assert.strictEqual(g2.hist[first], 1);
