@@ -383,13 +383,27 @@ test('互相出題：逾時跳到對方、不是自己的回合不能猜、15 �
   const notHit = (sec) => cands.filter(c => Core.evaluate(sec, c).a < 4);
   const fGood = notHit(sF).sort((p, q) => { const x = Core.evaluate(sF, p), y = Core.evaluate(sF, q); return (y.a * 10 + y.b) - (x.a * 10 + x.b); })[0];
   const sBad = notHit(sS).sort((p, q) => { const x = Core.evaluate(sS, p), y = Core.evaluate(sS, q); return (x.a * 10 + x.b) - (y.a * 10 + y.b); })[0];
-  w.hub.guess(P[second], sBad);
-  for (let r = 2; r <= 15; r++) { w.hub.guess(P[first], fGood); w.hub.guess(P[second], sBad); }
+  w.adv(300); w.hub.guess(P[second], sBad);
+  for (let r = 2; r <= 15; r++) { w.adv(300); w.hub.guess(P[first], fGood); w.adv(300); w.hub.guess(P[second], sBad); }
   assert.strictEqual(room.status, 'finished');
   assert.strictEqual(room.result.reason, 'rounds');
   const ef = Core.evaluate(sF, fGood), es = Core.evaluate(sS, sBad);
   const want = ef.a * 10 + ef.b === es.a * 10 + es.b ? -1 : first;
   assert.strictEqual(room.result.winnerSeat, want);
+});
+test('防狂送：250ms 內第二次猜測被擋；聊天保留 <3 這類符號、過濾控制字元', () => {
+  const w = fakeWorld(), a = w.P('a'), b = w.P('b');
+  const room = w.hub.create(a, { mode: 'race' }); w.hub.join(b, { roomId: room.id });
+  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  const g = room.game, c1 = codeFor(g.spec, 1), c2 = codeFor(g.spec, 2);
+  const s = g.secret.join(); const pick = [c1, c2, codeFor(g.spec, 3)].filter(c => c.join() !== s);
+  w.hub.guess(a, pick[0]); w.adv(100); w.hub.guess(a, pick[1]);
+  assert.strictEqual(g.players[0].hist.length, 1);
+  assert.strictEqual(w.last('a', 'error').code, 'too_fast');
+  w.adv(300); w.hub.guess(a, pick[1]);
+  assert.strictEqual(g.players[0].hist.length, 2);
+  w.hub.chat(a, 'I <3 this\u0007 game');
+  assert.strictEqual(room.chat[room.chat.length - 1].text, 'I <3 this game');
 });
 test('房間設定驗證：非法值回到預設（普通、數字、5 分鐘、30 秒、6 人）', () => {
   const s = normSettings('race', { tier: 9, cs: 'nope', minutes: 7, turnSec: 7, cap: 99 });

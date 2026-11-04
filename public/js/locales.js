@@ -145,7 +145,7 @@
     'room.roundsN': '{n} 回合',
     'room.tierHelp': '項目數與重複由難度隨機決定',
     'room.duelHelp': '輪流猜，逾時就換對方；先手猜中，後手還有一次追平機會',
-    'err.bad_code_tooMany': '同一個符號最多 3 次'
+    'err.bad_code_tooMany': '同一個符號最多 3 次', 'err.too_fast': '猜太快了，慢一點點'
   };
 
   var EN = {
@@ -290,7 +290,7 @@
     'room.roundsN': '{n} rounds',
     'room.tierHelp': 'Item count and repeats are rolled by difficulty',
     'room.duelHelp': 'Take turns; a timeout passes the turn. If the first player cracks it, the second gets one try to tie',
-    'err.bad_code_tooMany': 'At most 3 of the same symbol'
+    'err.bad_code_tooMany': 'At most 3 of the same symbol', 'err.too_fast': 'Too fast — slow down a little'
   };
 
   I.add('zh-Hant', HANT);

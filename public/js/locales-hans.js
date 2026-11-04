@@ -484,6 +484,7 @@
 "room.roundsN": "{n} 回合",
 "room.tierHelp": "项目数与重复由难度随机决定",
 "room.duelHelp": "轮流猜，逾时就换对方；先手猜中，后手还有一次追平机会",
-"err.bad_code_tooMany": "同一个符号最多 3 次"
+"err.bad_code_tooMany": "同一个符号最多 3 次",
+"err.too_fast": "猜太快了，慢一点点"
 });
 })(typeof self !== 'undefined' ? self : this);

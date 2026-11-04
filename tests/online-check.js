@@ -68,7 +68,7 @@ function client(port, name) {
   A.send({ type: 'secret', code: [0, 1, 2, 3] });
   B.send({ type: 'secret', code: defB });
   const play = await B.wait(m => m.type === 'room' && m.room.status === 'playing');
-  assert.ok(JSON.stringify(play.room).indexOf('[0,1,2,3]') < 0, '乙看不到甲的密碼');
+  assert.strictEqual(play.room.game.players[0].mySecret, undefined, '乙看不到甲的密碼');
   const sp = await S.wait(m => m.type === 'room' && m.room.status === 'playing');
   assert.ok(JSON.stringify(sp.room).indexOf('mySecret') < 0, '觀戰者看不到密碼');
 

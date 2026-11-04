@@ -17,7 +17,7 @@ const BASE = 'http://localhost:3100/';
     for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) for (let c = 0; c < n; c++) for (let d = 0; d < n; d++) if (new Set([a, b, c, d]).size === 4) all.push([a, b, c, d]);
     for (const code of all) {
       Net.send({ type: 'guess', code });
-      await new Promise(r => setTimeout(r, 25));
+      await new Promise(r => setTimeout(r, 270));   // 伺服器擋 250ms 內連猜
       const me = OnlineUI.room.game.players[OnlineUI.room.you.seat];
       if (me.solved) return me.count;
     }
