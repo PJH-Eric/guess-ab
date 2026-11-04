@@ -1,16 +1,14 @@
 {
   "name": "guess-ab",
   "version": "1.0.0",
-  "description": "密碼鎖 1A2B：猜數字、字母、可愛圖案與現實世界主題的密碼遊戲。單機四段電腦、闖關 400 關、每日挑戰，線上同題競速、互相出題、觀戰與邀請連結（零依賴）",
+  "description": "密碼鎖 1A2B：猜數字、字母、可愛圖案與現實世界主題的密碼遊戲。五段難度、闖關 50 關、每日挑戰（五難度各一題），線上同題競速（限總時長）、互相出題（每回合限時）、觀戰與邀請連結（零依賴）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node tests/verify.js && node tests/online-check.js",
     "verify": "node tests/verify.js",
     "test:online": "node tests/online-check.js",
-    "verify:levels": "node scripts/verify-levels.js --check",
     "gen:spec-table": "node scripts/gen-spec-table.js",
-    "gen:levels": "node scripts/verify-levels.js",
     "gen:hans": "python3 scripts/gen-hans.py",
     "inject": "node scripts/inject-server-url.js",
     "inject:seo": "node scripts/inject-seo.js"
