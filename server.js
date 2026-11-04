@@ -52,9 +52,11 @@ function lobbyIds() { const out = []; for (const [id, it] of people) if (!it.per
 function sendLobby(pid) { io.send(pid, { type: 'lobby', rooms: hub.listRooms(), online: Array.from(people.values()).filter(it => it.person.ready).length }); }
 function broadcastLobby() { for (const id of lobbyIds()) sendLobby(id); }
 
+/* 遊戲計時 10ms 一個 tick（倒數到期就立刻處理）；心跳每秒、大廳更新每 0.5 秒 */
+const TICK_MS = 10;
+setInterval(() => { hub.tick(); }, TICK_MS).unref();
 let beat = 0;
 setInterval(() => {
-  hub.tick();
   if (++beat % 2 === 0) for (const it of people.values()) { it.socket.ping(); it.socket.sendJSON({ type: 'hb' }); }
   if (hub.popDirty()) broadcastLobby();
 }, 500).unref();
@@ -78,8 +80,6 @@ function handle(person, msg) {
     case 'guess': hub.guess(person, Array.isArray(msg.code) ? msg.code.slice(0, 4) : null); return;
     case 'resign': hub.resign(person); return;
     case 'settings': hub.settings(person, msg); return;
-    case 'add_ai': hub.addAI(person, msg); return;
-    case 'remove_ai': hub.removeAI(person, msg); return;
     case 'invite_new': hub.inviteNew(person); return;
     case 'invite_revoke': hub.inviteRevoke(person); return;
     case 'kick': hub.kick(person, String(msg.target || '')); return;
@@ -91,7 +91,7 @@ function handle(person, msg) {
 function sync(person) {
   const room = hub.roomFor(person.id);
   person.roomId = room ? room.id : null;
-  person.role = room ? (room.seats.some(s => s && !s.ai && s.id === person.id) ? 'player' : 'spectator') : null;
+  person.role = room ? (room.seats.some(s => s && s.id === person.id) ? 'player' : 'spectator') : null;
 }
 
 const counts = () => hub.stats();

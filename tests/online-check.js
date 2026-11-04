@@ -47,7 +47,7 @@ function client(port, name) {
   assert.notStrictEqual(presence.status, 200, '不提供 /api/presence');
 
   const A = await client(port, '甲'), B = await client(port, '乙'), S = await client(port, '丙');
-  A.send({ type: 'create', mode: 'duel', name: '甲', settings: { cs: 'pack-fruit', n: 8, rep: false } });
+  A.send({ type: 'create', mode: 'duel', name: '甲', settings: { tier: 0, cs: 'pack-fruit', turnSec: 30 } });
   const r1 = await A.wait(m => m.type === 'room');
   const id = r1.room.id, token = r1.room.invite.token;
   assert.ok(token, '房主拿得到邀請 token');
@@ -59,9 +59,14 @@ function client(port, name) {
 
   A.send({ type: 'ready', value: true }); B.send({ type: 'ready', value: true });
   const setup = await A.wait(m => m.type === 'room' && m.room.status === 'setup');
-  assert.strictEqual(setup.room.game.spec.pool.length, 8);
+  const n = setup.room.game.spec.pool.length;
+  assert.ok(n >= 4 && n <= 5 && setup.room.game.spec.rep === false, '幼幼：4～5 個項目、不重複');
+  const setupB = (B.room() && B.room().status === 'setup') ? B.room() : (await B.wait(m => m.type === 'room' && m.room.status === 'setup')).room;
+  const defB = setupB.game.players[1].myDefault;
+  assert.ok(Array.isArray(defB) && defB.length === 4, '乙拿到預設密碼');
+  assert.strictEqual(setup.room.game.players[1].myDefault, undefined, '甲看不到乙的預設密碼');
   A.send({ type: 'secret', code: [0, 1, 2, 3] });
-  B.send({ type: 'secret', code: [4, 5, 6, 7] });
+  B.send({ type: 'secret', code: defB });
   const play = await B.wait(m => m.type === 'room' && m.room.status === 'playing');
   assert.ok(JSON.stringify(play.room).indexOf('[0,1,2,3]') < 0, '乙看不到甲的密碼');
   const sp = await S.wait(m => m.type === 'room' && m.room.status === 'playing');
@@ -74,13 +79,15 @@ function client(port, name) {
   assert.ok(!A.msgs.some(m => m.type === 'chat' && m.msg.text === '觀戰頻道測試'), '玩家不該收到觀戰頻道');
 
   const first = play.room.game.first;
-  const P = [A, B], codeFor = seat => seat === 0 ? [4, 5, 6, 7] : [0, 1, 2, 3];
-  P[first].send({ type: 'guess', code: codeFor(first).slice().reverse() });
+  const P = [A, B], codeFor = seat => seat === 0 ? defB.slice() : [0, 1, 2, 3];
+  let miss = codeFor(first).slice().reverse();
+  if (miss.join() === codeFor(first).join() || new Set(miss).size < 4) miss = [0, 1, 2, 3].join() === codeFor(first).join() ? [1, 0, 2, 3] : [0, 1, 2, 3];
+  P[first].send({ type: 'guess', code: miss });
   await P[1 - first].wait(m => m.type === 'room' && m.room.game && m.room.game.turn === 1 - first);
   P[1 - first].send({ type: 'guess', code: codeFor(1 - first) });
   const fin = await A.wait(m => m.type === 'room' && m.room.status === 'finished');
   assert.strictEqual(fin.room.game.result.winnerSeat, 1 - first);
-  assert.deepStrictEqual(fin.room.game.result.secrets, [[0, 1, 2, 3], [4, 5, 6, 7]]);
+  assert.deepStrictEqual(fin.room.game.result.secrets, [[0, 1, 2, 3], defB]);
 
   /* 撤銷邀請後，用舊 token 加入會失敗 */
   A.send({ type: 'invite_revoke' });

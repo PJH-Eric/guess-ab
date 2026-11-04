@@ -1,4 +1,4 @@
-/* ===== core/ai.js — 電腦猜題（四段難度，泛化到任何字元集／項目數／重複）=====
+/* ===== scripts/lib/solver.js — 離線解題器（只給 gen-spec-table.js 算各規格平均步數用，遊戲裡沒有電腦對手）=====
  * 電腦只拿得到自己的猜測歷史 { guess, a, b }，永遠看不到密碼。
  *
  * 難度＝推理強度＋失誤率：
@@ -14,7 +14,7 @@
  */
 (function (root, factory) {
   'use strict';
-  var Core = (typeof module === 'object' && module.exports) ? require('./core.js') : root.GuessCore;
+  var Core = (typeof module === 'object' && module.exports) ? require('../../public/js/core/core.js') : root.GuessCore;
   var mod = factory(Core);
   if (typeof module === 'object' && module.exports) module.exports = mod;
   else root.GuessAI = mod;
@@ -44,6 +44,7 @@
         if (!rep && (c === a || c === b)) continue;
         for (var d = 0; d < n; d++) {
           if (!rep && (d === a || d === b || d === c)) continue;
+          if (rep && a === b && b === c && c === d) continue;
           arr[p++] = a; arr[p++] = b; arr[p++] = c; arr[p++] = d;
         }
       }
@@ -110,6 +111,7 @@
       for (var x = 0; x < ord.length; x++) {
         var s = ord[x];
         if (!rep && used[s]) continue;
+        if (rep && used[s] >= 3) continue;
         var ok = true, q2;
         for (q2 = 0; q2 < H.length; q2++) {
           var h = H[q2];

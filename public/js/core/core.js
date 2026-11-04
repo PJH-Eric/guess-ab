@@ -5,6 +5,9 @@
  * 畫面再用 spec.pool[索引] 換成字元集裡的符號 id，最後交給美術登記表畫出來。
  *
  * 位數固定 4（任何模式都一樣）。
+ *
+ * v0.8：玩家不再自己設定項目數與重複，改由五段難度（幼幼／簡單／普通／困難／神話）自動隨機決定；
+ *       一般模式項目池最多 8 個、闖關最多 10 個；可重複時同一個符號最多出現 3 次。
  */
 (function (root, factory) {
   'use strict';
@@ -57,15 +60,36 @@
   var REAL_PACKS = PACKS.slice(8);
   var PACK_SIZE = 20;
 
+  var N_MIN = 4, N_MAX = 10, MAX_SAME = 3;
   var CHARSETS = {
-    digits: { kind: 'digits', size: 10, min: 6, max: 10 },
-    letters: { kind: 'letters', size: 26, min: 6, max: 26 },
-    gems: { kind: 'gems', size: 12, min: 6, max: 12 },
-    mix: { kind: 'mix', size: PACKS.length * PACK_SIZE, min: 6, max: 40 }
+    digits: { kind: 'digits', size: 10, min: N_MIN, max: N_MAX },
+    letters: { kind: 'letters', size: 26, min: N_MIN, max: N_MAX },
+    gems: { kind: 'gems', size: 12, min: N_MIN, max: N_MAX },
+    mix: { kind: 'mix', size: PACKS.length * PACK_SIZE, min: N_MIN, max: N_MAX }
   };
   PACKS.forEach(function (p) {
-    CHARSETS['pack-' + p] = { kind: 'pack', pack: p, size: PACK_SIZE, min: 6, max: PACK_SIZE };
+    CHARSETS['pack-' + p] = { kind: 'pack', pack: p, size: PACK_SIZE, min: N_MIN, max: N_MAX };
   });
+
+  /* ---------- 五段難度 ---------- */
+  var TIERS = 5;
+  /** 一般模式：每段的項目數範圍與「可重複」機率 */
+  var TIER_N = [[4, 5], [5, 6], [6, 7], [7, 8], [8, 8]];
+  var TIER_REP = [0, 0, 0.3, 0.6, 1];
+  /** 字元集可選「random」＝每局隨機換一種 */
+  function resolveCs(cs, rng) {
+    if (cs === 'random') return CHARSET_IDS[rng.int(CHARSET_IDS.length)];
+    return CHARSETS[cs] ? cs : 'digits';
+  }
+  /** 依難度隨機產生一局的規格（項目數、重複、項目池都由 seed 決定） */
+  function tierSpec(tier, cs, seed, nRange) {
+    tier = Math.max(0, Math.min(TIERS - 1, tier | 0));
+    var r = rngFrom(seed + ':tier');
+    var range = nRange || TIER_N[tier];
+    var n = range[0] + r.int(range[1] - range[0] + 1);
+    var rep = r() < TIER_REP[tier];
+    return makeSpec({ cs: resolveCs(cs, r), n: n, rep: rep }, seed);
+  }
   var CHARSET_IDS = ['digits', 'letters', 'gems'].concat(PACKS.map(function (p) { return 'pack-' + p; })).concat(['mix']);
 
   function charset(id) { return CHARSETS[id] || null; }
@@ -121,15 +145,19 @@
   }
 
   /** 可能空間大小 */
+  /** 可重複時排除「4 格都一樣」（同一符號最多 3 次） */
   function spaceSize(n, rep) {
-    return rep ? Math.pow(n, LEN) : n * (n - 1) * (n - 2) * (n - 3);
+    return rep ? Math.pow(n, LEN) - n : n * (n - 1) * (n - 2) * (n - 3);
   }
 
   /* ---------- 出題 ---------- */
   function makeSecret(rng, n, rep) {
     var out = [];
     if (rep) {
-      for (var i = 0; i < LEN; i++) out.push(rng.int(n));
+      do {
+        out = [];
+        for (var i = 0; i < LEN; i++) out.push(rng.int(n));
+      } while (out[0] === out[1] && out[1] === out[2] && out[2] === out[3]);
       return out;
     }
     var all = [];
@@ -171,6 +199,8 @@
     }
     if (!rep) {
       for (var x = 0; x < LEN; x++) for (var y = x + 1; y < LEN; y++) if (guess[x] === guess[y]) return { ok: false, reason: 'duplicate' };
+    } else if (guess[0] === guess[1] && guess[1] === guess[2] && guess[2] === guess[3]) {
+      return { ok: false, reason: 'tooMany' };
     }
     return { ok: true };
   }
@@ -187,7 +217,8 @@
   }
 
   return {
-    LEN: LEN, PACKS: PACKS, CUTE_PACKS: CUTE_PACKS, REAL_PACKS: REAL_PACKS, PACK_SIZE: PACK_SIZE,
+    LEN: LEN, MAX_SAME: MAX_SAME, N_MIN: N_MIN, N_MAX: N_MAX, TIERS: TIERS, TIER_N: TIER_N, TIER_REP: TIER_REP, tierSpec: tierSpec, resolveCs: resolveCs,
+    PACKS: PACKS, CUTE_PACKS: CUTE_PACKS, REAL_PACKS: REAL_PACKS, PACK_SIZE: PACK_SIZE,
     CHARSETS: CHARSETS, CHARSET_IDS: CHARSET_IDS,
     hashString: hashString, mulberry32: mulberry32, rngFrom: rngFrom, randomSeed: randomSeed,
     charset: charset, clampN: clampN, symbolRef: symbolRef,

@@ -1,4 +1,4 @@
-/* ===== tests/verify.js — 規則、電腦、規格表、關卡、美術資料、語系、房間邏輯 =====
+/* ===== tests/verify.js — 規則、五段難度、規格表、關卡、美術資料、語系、房間邏輯 =====
  * 用法：node tests/verify.js
  */
 'use strict';
@@ -9,7 +9,6 @@ const root = path.join(__dirname, '..');
 global.self = global;
 
 const Core = require('../public/js/core/core.js');
-const AI = require('../public/js/core/ai.js');
 const Table = require('../public/js/core/spec-table.js');
 const Levels = require('../public/js/core/levels.js');
 const { createHub, normSettings } = require('../lib/rooms.js');
@@ -34,13 +33,14 @@ function naive(s, g) {
 test('A/B 判定與暴力計數一致（20 萬組，含可重複）', () => {
   const r = Core.mulberry32(7);
   for (let t = 0; t < 200000; t++) {
-    const n = 6 + r.int(35), s = Core.makeSecret(r, n, r() < .5), g = Core.makeSecret(r, n, r() < .5);
+    const n = 4 + r.int(7), s = Core.makeSecret(r, n, r() < .5), g = Core.makeSecret(r, n, r() < .5);
     const x = Core.evaluate(s, g), y = naive(s, g);
     assert.deepStrictEqual([x.a, x.b], [y.a, y.b], JSON.stringify([s, g]));
   }
 });
 test('預設規格窮舉 5040×200：A+B ≤ 4、A=4 只在相同時', () => {
-  const sp = AI.enumerate(10, false);
+  const sp = [];
+  for (let a = 0; a < 10; a++) for (let b = 0; b < 10; b++) for (let c = 0; c < 10; c++) for (let d = 0; d < 10; d++) if (new Set([a, b, c, d]).size === 4) sp.push(a, b, c, d);
   assert.strictEqual(sp.length / 4, 5040);
   const r = Core.mulberry32(3);
   for (let i = 0; i < 200; i++) {
@@ -84,93 +84,104 @@ test('項目池：同 seed 可重現、不重複、在字元集內、答案在�
 });
 test('n 會被夾在字元集範圍內', () => {
   assert.strictEqual(Core.clampN('digits', 99), 10);
-  assert.strictEqual(Core.clampN('mix', 99), 40);
-  assert.strictEqual(Core.clampN('letters', 1), 6);
-  assert.strictEqual(Core.clampN('pack-food', 25), 20);
+  assert.strictEqual(Core.clampN('mix', 99), 10);
+  assert.strictEqual(Core.clampN('letters', 1), 4);
+  assert.strictEqual(Core.clampN('pack-food', 25), 10);
 });
 test('台北時間日期', () => {
   assert.strictEqual(Core.taipeiDate(Date.UTC(2026, 10, 3, 16, 0)), '2026-11-04');
   assert.strictEqual(Core.taipeiDate(Date.UTC(2026, 10, 3, 15, 59)), '2026-11-03');
 });
 
-console.log('電腦');
-function avgSteps(level, n, rep, games) {
-  const r = Core.mulberry32(99); let tot = 0, max = 0;
-  for (let i = 0; i < games; i++) {
-    const s = Core.makeSecret(r, n, rep);
-    const st = AI.simulate({ level, n, rep, rng: Core.mulberry32(i * 31 + 5) }, s, 80);
-    tot += st; max = Math.max(max, st);
+console.log('五段難度');
+test('五段難度：項目數範圍、重複機率、每局隨機（各 400 局）', () => {
+  const RANGE = [[4, 5], [5, 6], [6, 7], [7, 8], [8, 8]];
+  for (let tier = 0; tier < 5; tier++) {
+    let reps = 0; const ns = new Set();
+    for (let i = 0; i < 400; i++) {
+      const sp = Core.tierSpec(tier, 'digits', 't' + tier + ':' + i);
+      assert.ok(sp.n >= RANGE[tier][0] && sp.n <= RANGE[tier][1], tier + ':' + sp.n);
+      assert.ok(sp.n <= 8, '一般模式項目池最多 8 個');
+      ns.add(sp.n); if (sp.rep) reps++;
+      const s = Core.secretFor(sp);
+      assert.ok(Core.validate(s, sp.n, sp.rep).ok);
+      if (sp.rep) { const c = {}; s.forEach(x => c[x] = (c[x] || 0) + 1); assert.ok(Math.max(...Object.values(c)) <= 3, '同一個最多 3 次'); }
+    }
+    assert.strictEqual(ns.size, RANGE[tier][1] - RANGE[tier][0] + 1, '範圍內每個項目數都會出現');
+    const rate = reps / 400, want = Core.TIER_REP[tier];
+    assert.ok(Math.abs(rate - want) < 0.08, tier + ' 重複率 ' + rate);
   }
-  return { avg: tot / games, max };
-}
-test('四段難度平均步數遞進（預設規格各 300 局）', () => {
-  const r = [0, 1, 2, 3].map(lv => avgSteps(lv, 10, false, lv === 3 ? 150 : 300));
-  console.log('    平均步數：' + r.map(x => x.avg.toFixed(2)).join(' / ') + '，困難最多 ' + r[3].max);
-  assert.ok(r[0].avg > r[1].avg + 1.5 && r[1].avg > r[2].avg + 1 && r[2].avg > r[3].avg + 0.1);
-  assert.ok(r[3].avg < 5.5 && r[3].max <= 7);
-  assert.ok(r[0].max < 80, '幼幼班也一定會結束');
 });
-test('大空間（字母 26 可重複、大混搭 40）也能在合理步數內解出', () => {
-  const a = avgSteps(3, 26, true, 4), b = avgSteps(2, 40, false, 3);
-  assert.ok(a.max < 20 && b.max < 40, JSON.stringify([a, b]));
+test('可重複時 4 格全一樣不合法、出題也不會出現', () => {
+  assert.strictEqual(Core.validate([2, 2, 2, 2], 8, true).reason, 'tooMany');
+  assert.ok(Core.validate([2, 2, 2, 1], 8, true).ok);
+  const r = Core.mulberry32(5);
+  for (let i = 0; i < 20000; i++) { const s = Core.makeSecret(r, 4, true); assert.ok(!(s[0] === s[1] && s[1] === s[2] && s[2] === s[3])); }
+  assert.strictEqual(Core.spaceSize(4, true), 252);
+  assert.strictEqual(Core.spaceSize(4, false), 24);
 });
-test('電腦模組只吃猜測歷史，不會碰到密碼', () => {
-  const src = fs.readFileSync(path.join(root, 'public/js/core/ai.js'), 'utf8');
-  assert.ok(!/secretFor|\.secret\b/.test(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')));
-  const ai = AI.createAI({ level: 3, n: 10, rep: false, rng: Core.mulberry32(1) });
-  assert.strictEqual(ai.next.length, 1);
+test('字元集「隨機」每局換一種，且同 seed 可重現', () => {
+  const seen = new Set();
+  for (let i = 0; i < 60; i++) {
+    const a = Core.tierSpec(2, 'random', 'r' + i), b = Core.tierSpec(2, 'random', 'r' + i);
+    assert.deepStrictEqual(a, b);
+    assert.ok(Core.charset(a.cs));
+    seen.add(a.cs);
+  }
+  assert.ok(seen.size >= 8, '應該抽到很多種');
 });
-test('電腦不會重猜同一組', () => {
-  const ai = AI.createAI({ level: 2, n: 6, rep: false, rng: Core.mulberry32(4) });
-  const secret = [0, 1, 2, 3], hist = [], seen = new Set();
-  for (let i = 0; i < 12; i++) {
-    const g = ai.next(hist); const k = g.join();
-    assert.ok(!seen.has(k)); seen.add(k);
-    const r = Core.evaluate(secret, g); hist.push({ guess: g, a: r.a, b: r.b });
-    if (r.a === 4) break;
+test('三星標準步數：每段每個項目數都有值且合理', () => {
+  for (let tier = 0; tier < 5; tier++) for (let n = 4; n <= 10; n++) for (const rep of [false, true]) {
+    const p = Table.par(tier, n, rep);
+    assert.ok(Number.isInteger(p) && p >= 2 && p <= 12, [tier, n, rep, p].join());
+    if (tier) assert.ok(p <= Table.par(tier - 1, n, rep), '越難標準越緊');
   }
 });
 
-console.log('規格表與關卡');
-test('預設規格上限 12/10/8、par 8/7/6/5', () => {
-  assert.deepStrictEqual([1, 2, 3].map(t => Table.limit(t, 10, false)), [12, 10, 8]);
-  assert.deepStrictEqual([0, 1, 2, 3].map(t => Table.par(t, 10, false)), [8, 7, 6, 5]);
-  assert.strictEqual(Table.limit(0, 10, false), 0);
-});
-test('規格表每個 n 都有值，難度越高上限越緊', () => {
-  for (const rep of [false, true]) for (let n = 6; n <= 40; n++) {
-    assert.ok(Table.avg(n, rep) > 3, n + rep);
-    assert.ok(Table.limit(1, n, rep) >= Table.limit(2, n, rep) && Table.limit(2, n, rep) >= Table.limit(3, n, rep));
-  }
-});
-test('400 關規格合法（位數 4、n 在字元集範圍內、題型有混用）', () => {
-  const kinds = new Set();
-  for (let t = 0; t < 4; t++) for (let L = 1; L <= 100; L++) {
-    const info = Levels.level(t, L);
+console.log('闖關與每日挑戰');
+test('50 關：每 10 關換一段難度、項目數 4→10 遞增、頭目關沒提示', () => {
+  assert.strictEqual(Levels.COUNT, 50);
+  const kinds = new Set(); let prevN = 0;
+  for (let L = 1; L <= 50; L++) {
+    const info = Levels.level(L);
+    assert.strictEqual(info.tier, Math.floor((L - 1) / 10), 'L' + L);
     const c = Core.charset(info.spec.cs);
-    assert.ok(c && info.spec.n >= c.min && info.spec.n <= c.max, t + ':' + L);
+    assert.ok(info.spec.n >= 4 && info.spec.n <= 10);
+    assert.ok(info.spec.n >= prevN, '項目數不會倒退'); prevN = info.spec.n;
     assert.ok(Core.validPool(info.spec.cs, info.spec.n, info.spec.pool));
-    if (t === 0) assert.strictEqual(info.limit, 0);
-    if (L % 10 === 0) assert.strictEqual(info.hints, 0);
+    assert.ok(Core.validate(Core.secretFor(info.spec), info.spec.n, info.spec.rep).ok);
+    if (info.tier < 2) assert.strictEqual(info.spec.rep, false, '幼幼、簡單不重複');
+    if (info.tier === 4) assert.strictEqual(info.spec.rep, true, '神話一定重複');
+    assert.strictEqual(info.boss, L % 10 === 0);
+    if (info.boss) assert.strictEqual(info.hints, 0);
+    else assert.strictEqual(info.hints, [Infinity, 3, 2, 1, 0][info.tier]);
     kinds.add(c.kind);
+    assert.deepStrictEqual(Levels.level(L).spec, info.spec, '每次都一樣');
   }
+  assert.strictEqual(Levels.level(1).spec.n, 4);
+  assert.strictEqual(Levels.level(50).spec.n, 10);
   assert.ok(['digits', 'letters', 'gems', 'pack', 'mix'].every(k => kinds.has(k)));
 });
-test('星數規則', () => {
-  const info = { par: 6, limit: 10 };
-  assert.strictEqual(Levels.stars(info, 5, 0), 3);
-  assert.strictEqual(Levels.stars(info, 9, 0), 2);
-  assert.strictEqual(Levels.stars(info, 10, 0), 1);
+test('星數：標準內 3★、多 2 步內 2★、其餘 1★；用提示最高 2★', () => {
+  const info = { par: 6 };
+  assert.strictEqual(Levels.stars(info, 6, 0), 3);
+  assert.strictEqual(Levels.stars(info, 8, 0), 2);
+  assert.strictEqual(Levels.stars(info, 9, 0), 1);
+  assert.strictEqual(Levels.stars(info, 30, 0), 1);
   assert.strictEqual(Levels.stars(info, 3, 1), 2);
 });
-test('每日挑戰：同一天同題、依星期換題型、不給提示', () => {
-  const a = Levels.dailyInfo('2026-11-03'), b = Levels.dailyInfo('2026-11-03');
-  assert.deepStrictEqual(a.spec.pool, b.spec.pool);
-  assert.deepStrictEqual(Core.secretFor(a.spec), Core.secretFor(b.spec));
-  const types = new Set(); for (let d = 1; d <= 7; d++) types.add(Levels.dailyInfo('2026-11-0' + d).spec.cs + Levels.dailyInfo('2026-11-0' + d).spec.rep);
-  assert.ok(types.size >= 5);
-  assert.strictEqual(a.hints, 0);
-  assert.strictEqual(Levels.dailyInfo('2026-11-02').spec.cs, 'digits'); // 週一經典
+test('每日挑戰：五個難度各一題、同一天同題、不同難度不同題、不給提示', () => {
+  const sigs = new Set();
+  for (let k = 0; k < 5; k++) {
+    const a = Levels.dailyInfo('2026-11-04', k), b = Levels.dailyInfo('2026-11-04', k);
+    assert.deepStrictEqual(a.spec, b.spec);
+    assert.deepStrictEqual(Core.secretFor(a.spec), Core.secretFor(b.spec));
+    assert.strictEqual(a.hints, 0);
+    assert.ok(a.spec.n <= 8);
+    sigs.add(a.spec.cs + a.spec.pool.join());
+  }
+  assert.strictEqual(sigs.size, 5);
+  assert.notDeepStrictEqual(Levels.dailyInfo('2026-11-05', 2).spec.pool.concat(Levels.dailyInfo('2026-11-05', 2).spec.cs), Levels.dailyInfo('2026-11-04', 2).spec.pool.concat(Levels.dailyInfo('2026-11-04', 2).spec.cs));
 });
 
 console.log('美術資料');
@@ -217,14 +228,14 @@ test('程式用到的字串在繁中／簡中／英文都有', () => {
   for (const m of html.matchAll(/data-i18n="([^"]+)"/g)) keys.add(m[1]);
   for (const m of html.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach(p => keys.add(p.split('=')[1]));
   /* 動態組出來的 key */
-  ['tier.0', 'tier.1', 'tier.2', 'tier.3', 'notes.st0', 'notes.st3', 'mode.guess', 'mode.aiGuess', 'mode.duel', 'mode.level', 'mode.daily', 'mode.raceOnline', 'mode.duelOnline',
+  ['tier.0', 'tier.1', 'tier.2', 'tier.3', 'tier.4', 'tierHelp.0', 'tierHelp.4', 'notes.st0', 'notes.st3', 'mode.guess', 'mode.level', 'mode.daily', 'mode.raceOnline', 'mode.duelOnline',
     'say.greetGuess', 'say.greetDaily', 'say.watching', 'say.greetOnline', 'say.greetDuel', 'hint.posAsk', 'hint.hasAsk', 'hint.attrAsk', 'hint.hasOne', 'hint.hasMany',
     'attr.odd', 'attr.even', 'attr.vowel', 'attr.consonant', 'attr.warm', 'attr.cool', 'rs.waiting', 'rs.setup', 'rs.playing', 'rs.finished',
-    'race.out.limit', 'race.out.left', 'race.out.idle', 'race.out.resign', 'res.reason.left', 'res.reason.idle', 'res.reason.resign', 'closed.no_players', 'closed.kicked',
-    'tierHelp.g0', 'tierHelp.g3', 'tierHelp.a0', 'tierHelp.a3', 'create.raceHelp', 'create.duelHelp', 'net.connecting', 'net.retrying',
-    'title.solo', 'title.setup', 'title.levels', 'title.stats', 'title.help', 'title.lobby', 'avatar.0', 'avatar.7', 'quick.q1', 'quick.q6']
+    'race.out.left', 'race.out.idle', 'race.out.resign', 'res.reason.left', 'res.reason.idle', 'res.reason.resign', 'res.reason.rounds', 'closed.no_players', 'closed.kicked',
+    'create.raceHelp', 'create.duelHelp', 'net.connecting', 'net.retrying',
+    'title.solo', 'title.setup', 'title.levels', 'title.stats', 'title.help', 'title.lobby', 'title.daily', 'avatar.0', 'avatar.7', 'quick.q1', 'quick.q6']
     .concat(Core.CHARSET_IDS.map(c => 'cs.' + c))
-    .concat(['room_missing', 'invite_invalid', 'invite_revoked', 'spec_full', 'busy_sit', 'full', 'not_player', 'ai_mode', 'busy_settings', 'ai_space', 'cap_busy', 'bad_code_length', 'bad_code_unknown', 'bad_code_duplicate', 'not_turn', 'server'].map(c => 'err.' + c))
+    .concat(['room_missing', 'invite_invalid', 'invite_revoked', 'spec_full', 'busy_sit', 'full', 'not_player', 'busy_settings', 'cap_busy', 'bad_code_length', 'bad_code_unknown', 'bad_code_duplicate', 'bad_code_tooMany', 'not_turn', 'server'].map(c => 'err.' + c))
     .concat(['joinedPlay', 'joinedSpec', 'sat', 'leftRoom', 'kicked', 'newInvite', 'start', 'setSecret', 'duelStart', 'firstSolve', 'over', 'dcLoss', 'idleOut', 'idleWarn'].map(c => 'toast.' + c))
     .forEach(k => keys.add(k));
   const missing = [];
@@ -239,7 +250,7 @@ function fakeWorld() {
   let t = 1000000;
   const inbox = {};
   const io = { send: (pid, m) => (inbox[pid] = inbox[pid] || []).push(m), cleared: () => {} };
-  const hub = createHub(io, { now: () => t, aiDelay: () => 1 });
+  const hub = createHub(io, { now: () => t });
   const P = id => ({ id, name: id });
   const last = (pid, type) => (inbox[pid] || []).filter(m => m.type === type).pop();
   return { hub, P, inbox, last, adv: ms => { t += ms; }, now: () => t };
@@ -260,29 +271,18 @@ test('建房、邀請加入、撤銷後失效、觀戰者不算實體玩家、�
   assert.strictEqual(w.last('c', 'closed').reason, 'no_players');
   assert.strictEqual(w.hub.rooms.size, 0);
 });
-test('電腦席位只在空間 ≤ 60,000 時能加，有電腦時不能改成大空間', () => {
+function codeFor(spec, k) {
+  /* 依本局規格做出一組合法的猜測（k 不同就不同） */
+  const r = Core.mulberry32(k + 1);
+  return Core.makeSecret(r, spec.n, false);
+}
+test('房間沒有電腦：舊的加電腦訊息不存在、快照沒有 ai 欄位', () => {
   const w = fakeWorld(), a = w.P('a');
-  w.hub.create(a, { mode: 'race', settings: { cs: 'letters', n: 26, rep: true } });
-  w.hub.addAI(a, { seat: 1, level: 2 });
-  assert.strictEqual(w.last('a', 'error').code, 'ai_space');
-  w.hub.settings(a, { cs: 'digits', n: 10, rep: false });
-  w.hub.addAI(a, { seat: 1, level: 2 });
-  assert.ok(w.last('a', 'room').room.seats[1].ai);
-  w.hub.settings(a, { cs: 'letters', n: 26, rep: true });
-  assert.strictEqual(w.last('a', 'error').code, 'ai_space');
-  const w2 = fakeWorld(), d = w2.P('d');
-  w2.hub.create(d, { mode: 'duel' });
-  w2.hub.addAI(d, { seat: 1, level: 1 });
-  assert.strictEqual(w2.last('d', 'error').code, 'ai_mode');
-});
-test('只有電腦與觀戰者時房間關閉（實體玩家為 0）', () => {
-  const w = fakeWorld(), a = w.P('a'), s = w.P('s');
-  const room = w.hub.create(a, { mode: 'race' });
-  w.hub.addAI(a, { seat: 1, level: 0 });
-  w.hub.join(s, { roomId: room.id, want: 'spectator' });
-  w.hub.leave('a');
-  assert.strictEqual(w.hub.rooms.size, 0);
-  assert.strictEqual(w.last('s', 'closed').reason, 'no_players');
+  w.hub.create(a, { mode: 'race' });
+  assert.strictEqual(typeof w.hub.addAI, 'undefined');
+  const snap = w.last('a', 'room').room;
+  assert.ok(snap.seats.every(s => !s || !('ai' in s)));
+  assert.ok(!/addAI|add_ai/.test(fs.readFileSync(path.join(root, 'server.js'), 'utf8')));
 });
 test('競速：玩家看不到答案與別人的猜測內容，觀戰者看得到猜測但看不到答案；先猜中者勝、10 秒收尾', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b'), s = w.P('s');
@@ -290,9 +290,8 @@ test('競速：玩家看不到答案與別人的猜測內容，觀戰者看得�
   w.hub.join(b, { roomId: room.id }); w.hub.join(s, { roomId: room.id, want: 'spectator' });
   w.hub.setReady(a, true); w.hub.setReady(b, true);
   assert.strictEqual(room.status, 'playing');
-  const secret = room.game.secret.slice();
-  const wrong = Core.makeSecret(Core.mulberry32(1), 10, false);
-  if (wrong.join() === secret.join()) wrong.reverse();
+  const spec = room.game.spec, secret = room.game.secret.slice();
+  let wrong = codeFor(spec, 1); if (wrong.join() === secret.join()) wrong = codeFor(spec, 2);
   w.hub.guess(a, wrong);
   const snapA = JSON.stringify(w.last('a', 'room').room), snapB = w.last('b', 'room').room, snapS = w.last('s', 'room').room;
   assert.ok(snapA.indexOf('"secret"') < 0);
@@ -301,6 +300,7 @@ test('競速：玩家看不到答案與別人的猜測內容，觀戰者看得�
   assert.strictEqual(snapB.game.players[0].count, 1);
   assert.ok(Array.isArray(snapS.game.players[0].hist), '觀戰者看得到猜測');
   assert.ok(JSON.stringify(snapS).indexOf('"answer"') < 0);
+  assert.ok(snapB.game.endsAt > w.now(), '有總時長');
   w.hub.guess(b, secret);
   assert.strictEqual(room.game.winnerSeat, 1);
   assert.strictEqual(room.status, 'playing', '還在收尾');
@@ -309,68 +309,104 @@ test('競速：玩家看不到答案與別人的猜測內容，觀戰者看得�
   const res = w.last('a', 'room').room.game.result;
   assert.deepStrictEqual(res.answer, secret);
   assert.strictEqual(res.ranking[0].seat, 1);
+  assert.strictEqual(res.timeUp, false);
 });
-test('競速：逾時耗掉一次猜測、3 分鐘不動視為棄權、斷線 30 秒判離場', () => {
+test('競速：不限次數；總時長到了依最好 A→B→步數排名；斷線 30 秒判離場', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b'), c = w.P('c');
-  const room = w.hub.create(a, { mode: 'race', settings: { turnSec: 5 } });
+  const room = w.hub.create(a, { mode: 'race', settings: { minutes: 3, tier: 0 } });
   w.hub.join(b, { roomId: room.id }); w.hub.join(c, { roomId: room.id });
   [a, b, c].forEach(p => w.hub.setReady(p, true));
-  w.adv(5001); w.hub.tick();
-  assert.ok(room.game.players[0].hist[0].timeout && room.game.players[0].hist.length === 1);
+  const g = room.game, secret = g.secret;
+  assert.strictEqual(g.endsAt - w.now(), 3 * 60000);
+  /* A 猜 20 次都不中也不會被擋 */
+  const others = [];
+  const all = []; for (let x = 0; x < g.spec.n; x++) for (let y = 0; y < g.spec.n; y++) for (let z = 0; z < g.spec.n; z++) for (let q = 0; q < g.spec.n; q++) { const v = [x, y, z, q]; if (new Set(v).size === 4 && v.join() !== secret.join()) all.push(v); }
+  for (let i = 0; i < 20; i++) { w.adv(1000); w.hub.guess(a, all[i]); }
+  assert.strictEqual(g.players[0].hist.length, 20);
+  /* B 猜一組 3A0B 以上的（找最好的） */
+  const best = all.map(v => ({ v, e: Core.evaluate(secret, v) })).sort((p, q) => q.e.a - p.e.a || q.e.b - p.e.b)[0];
+  w.hub.guess(b, best.v);
   w.hub.markDisconnected('c');
   w.adv(30001); w.hub.tick();
-  assert.strictEqual(room.game.players[2].out, 'left');
+  assert.strictEqual(g.players[2].out, 'left');
+  /* 每 60 秒動一下避免閒置棄權，直到時間到 */
+  while (room.status === 'playing') { w.adv(60000); w.hub.guess(a, all[0]); w.hub.guess(b, best.v); w.hub.tick(); }
+  const res = room.result;
+  assert.strictEqual(res.timeUp, true);
+  assert.strictEqual(res.ranking[0].seat, 1, 'B 的 A/B 最好');
+  assert.strictEqual(res.ranking[res.ranking.length - 1].seat, 2, '離場的排最後');
 });
-test('互相出題：先手猜中後手可追平；同回合都猜中＝平手；密碼不外洩', () => {
+test('互相出題：設密碼階段有預設密碼、時間到自動鎖上；先手猜中後手可追平；密碼不外洩', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
-  const room = w.hub.create(a, { mode: 'duel' });
+  const room = w.hub.create(a, { mode: 'duel', settings: { turnSec: 15 } });
   w.hub.join(b, { roomId: room.id });
   w.hub.setReady(a, true); w.hub.setReady(b, true);
   assert.strictEqual(room.status, 'setup');
-  w.hub.setSecret(a, [1, 2, 3, 4]); w.hub.setSecret(b, [5, 6, 7, 8]);
-  assert.strictEqual(room.status, 'playing');
+  const spA = w.last('a', 'room').room.game, spB = w.last('b', 'room').room.game;
+  const defA = spA.players[0].myDefault;
+  assert.ok(Array.isArray(defA) && Core.validate(defA, spA.spec.n, spA.spec.rep).ok, 'A 有自己的預設密碼');
+  assert.strictEqual(spB.players[0].myDefault, undefined, 'B 看不到 A 的預設');
+  assert.strictEqual(spA.tier, room.settings.tier);
+  assert.ok(spA.setupEndsAt > w.now());
+  const mine = codeFor(room.game.spec, 7);
+  w.hub.setSecret(a, mine);
+  w.adv(60001); w.hub.tick();
+  assert.strictEqual(room.status, 'playing', '時間到用預設密碼開始');
+  assert.deepStrictEqual(room.game.players[1].secret, room.game.players[1].defaultSecret);
+  assert.deepStrictEqual(room.game.players[0].secret, mine);
   const snapB = JSON.stringify(w.last('b', 'room').room);
-  assert.ok(snapB.indexOf('[1,2,3,4]') < 0, 'B 看不到 A 的密碼');
-  const first = room.game.first, second = 1 - first;
-  const P = [a, b];
-  const codeOf = seat => seat === 0 ? [5, 6, 7, 8] : [1, 2, 3, 4];   // 猜對方
+  assert.ok(snapB.indexOf(JSON.stringify(mine)) < 0, 'B 看不到 A 的密碼');
+  const first = room.game.first, second = 1 - first, P = [a, b];
+  const codeOf = seat => room.game.players[1 - seat].secret.slice();
   w.hub.guess(P[first], codeOf(first));
   assert.strictEqual(room.status, 'playing', '先手猜中後還要等後手');
   w.hub.guess(P[second], codeOf(second));
   assert.strictEqual(room.status, 'finished');
   assert.strictEqual(room.result.winnerSeat, -1);
-  /* 第二局：只有後手猜中 → 後手勝 */
-  w.hub.setReady(a, true); w.hub.setReady(b, true);
-  w.hub.setSecret(a, [1, 2, 3, 4]); w.hub.setSecret(b, [5, 6, 7, 8]);
-  const f2 = room.game.first, s2 = 1 - f2;
-  assert.notStrictEqual(f2, first, '每局換先手');
-  w.hub.guess(P[f2], codeOf(f2).slice().reverse());
-  w.hub.guess(P[s2], codeOf(s2));
-  assert.strictEqual(room.result.winnerSeat, s2);
 });
-test('互相出題：不是自己的回合不能猜', () => {
+test('互相出題：逾時跳到對方、不是自己的回合不能猜、15 回合比最好 A/B', () => {
   const w = fakeWorld(), a = w.P('a'), b = w.P('b');
-  const room = w.hub.create(a, { mode: 'duel' }); w.hub.join(b, { roomId: room.id });
+  const room = w.hub.create(a, { mode: 'duel', settings: { turnSec: 15 } }); w.hub.join(b, { roomId: room.id });
   w.hub.setReady(a, true); w.hub.setReady(b, true);
-  w.hub.setSecret(a, [1, 2, 3, 4]); w.hub.setSecret(b, [5, 6, 7, 8]);
-  const notTurn = room.game.first === 0 ? b : a;
-  w.hub.guess(notTurn, [1, 2, 3, 4]);
+  const spec = room.game.spec;
+  w.hub.setSecret(a, codeFor(spec, 3)); w.hub.setSecret(b, codeFor(spec, 4));
+  const g = room.game, P = [a, b], first = g.first, second = 1 - first;
+  const notTurn = P[second];
+  w.hub.guess(notTurn, codeFor(spec, 1));
   assert.strictEqual(w.last(notTurn.id, 'error').code, 'not_turn');
-});
-test('競速加電腦能自己猜到結束', async () => {
-  const w = fakeWorld(), a = w.P('a');
-  const room = w.hub.create(a, { mode: 'race' });
-  w.hub.addAI(a, { seat: 1, level: 3 });
-  w.hub.setReady(a, true);
-  assert.strictEqual(room.status, 'playing');
-  await new Promise(r => setTimeout(r, 400));
-  assert.ok(room.game.players[1].solved || room.game.players[1].out, '電腦應已猜完');
-  w.hub.resign(a);
+  w.adv(15001); w.hub.tick();
+  assert.strictEqual(g.turn, second, '逾時換對方');
+  assert.ok(g.players[first].hist[0].timeout);
+  /* 找兩組都不中的猜測，先手的比較好 */
+  const sF = g.players[second].secret, sS = g.players[first].secret;
+  const cands = []; for (let k = 10; k < 400 && cands.length < 400; k++) cands.push(codeFor(spec, k));
+  const notHit = (sec) => cands.filter(c => Core.evaluate(sec, c).a < 4);
+  const fGood = notHit(sF).sort((p, q) => { const x = Core.evaluate(sF, p), y = Core.evaluate(sF, q); return (y.a * 10 + y.b) - (x.a * 10 + x.b); })[0];
+  const sBad = notHit(sS).sort((p, q) => { const x = Core.evaluate(sS, p), y = Core.evaluate(sS, q); return (x.a * 10 + x.b) - (y.a * 10 + y.b); })[0];
+  w.hub.guess(P[second], sBad);
+  for (let r = 2; r <= 15; r++) { w.hub.guess(P[first], fGood); w.hub.guess(P[second], sBad); }
   assert.strictEqual(room.status, 'finished');
+  assert.strictEqual(room.result.reason, 'rounds');
+  const ef = Core.evaluate(sF, fGood), es = Core.evaluate(sS, sBad);
+  const want = ef.a * 10 + ef.b === es.a * 10 + es.b ? -1 : first;
+  assert.strictEqual(room.result.winnerSeat, want);
 });
-test('房間設定驗證：非法值回到預設', () => {
-  const s = normSettings('race', { cs: 'nope', n: 999, rep: 1, turnSec: 7, cap: 99 });
-  assert.strictEqual(s.cs, 'digits'); assert.strictEqual(s.n, 10); assert.strictEqual(s.turnSec, 0); assert.strictEqual(s.cap, 6);
+test('房間設定驗證：非法值回到預設（普通、數字、5 分鐘、30 秒、6 人）', () => {
+  const s = normSettings('race', { tier: 9, cs: 'nope', minutes: 7, turnSec: 7, cap: 99 });
+  assert.deepStrictEqual(s, { tier: 2, cs: 'digits', minutes: 5, turnSec: 30, cap: 6 });
+  const r = normSettings('race', { tier: 4, cs: 'random', minutes: 10 });
+  assert.strictEqual(r.tier, 4); assert.strictEqual(r.cs, 'random'); assert.strictEqual(r.minutes, 10);
+  assert.strictEqual(normSettings('duel', { turnSec: 60 }).turnSec, 60);
+  assert.strictEqual(normSettings('duel', {}).cap, 2);
+});
+test('競速選「隨機」字元集時，伺服器每局會抽出實際的字元集', () => {
+  const w = fakeWorld(), a = w.P('a'), b = w.P('b');
+  const room = w.hub.create(a, { mode: 'race', settings: { cs: 'random', tier: 4 } });
+  w.hub.join(b, { roomId: room.id });
+  w.hub.setReady(a, true); w.hub.setReady(b, true);
+  assert.ok(Core.charset(room.game.spec.cs));
+  assert.strictEqual(room.game.spec.n, 8);
+  assert.strictEqual(room.game.spec.rep, true);
 });
 
 Promise.all(pending).then(() => {
