@@ -19,7 +19,8 @@
     var layer = doc.getElementById('result-layer');
     prevFocus = doc.activeElement;
     var mascotIdx = { idle: 0, think: 1, happy: 2, shake: 3, surprise: 4, sleep: 5 }[o.mood || 'idle'] || 0;
-    var html = '<div class="result-card" role="dialog" aria-modal="true" aria-labelledby="res-title">' +
+    // data-result-share：共用的 result-share.js 會在卡片底部加上「分享結果」，把這張結算卡做成分享圖片
+    var html = '<div class="result-card" role="dialog" aria-modal="true" aria-labelledby="res-title" data-result-share>' +
       '<div class="res-head res-' + o.kind + '">' + root.GuessArt.svg('mascot', mascotIdx, 'res-mascot') +
       '<div><h2 id="res-title" class="res-title">' + K.esc(o.title) + '</h2>' + (o.sub ? '<p class="res-sub">' + K.esc(o.sub) + '</p>' : '') + '</div></div>';
     if (o.stars != null) {
@@ -56,6 +57,8 @@
     if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 60);
     onKey = function (e) {
       if (layer.hidden) return;
+      // 分享圖片視窗開著時，由它自己困住焦點
+      if (doc.querySelector('.result-share-dialog-layer:not([hidden])')) return;
       if (e.key === 'Tab') {
         var f = Array.prototype.slice.call(layer.querySelectorAll('button:not([disabled])'));
         if (!f.length) return;

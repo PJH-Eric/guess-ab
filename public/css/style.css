@@ -813,7 +813,10 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
 @media (max-height: 520px) and (orientation: landscape) {
   .result-card { width: min(800px, 100%); display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-content: start; padding: 12px; }
   .result-card > * { grid-column: 1; }
-  .result-card > .res-actions { grid-column: 2; grid-row: 1 / span 8; align-self: center; margin-top: 0; }
+  .result-card > .res-actions { grid-column: 2; grid-row: 1 / span 7; align-self: end; margin-top: 0; }
+  /* 分享結果緊接在右欄按鈕下方，不要排到左欄內容的最底下而被卡片切掉 */
+  .result-card > .result-share { grid-column: 2; grid-row: 8; align-self: start; margin: 0; }
+  .result-card > .result-share .result-share-trigger { min-height: 40px; padding: 6px 14px; }
   .res-head { padding: 4px 8px; }
   svg.res-mascot { width: 52px; height: 52px; }
   .res-title { font-size: 1.15rem; }
