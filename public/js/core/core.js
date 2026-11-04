@@ -243,7 +243,7 @@
 
   /* ---------- 判定 ---------- */
   var _cs = new Int16Array(64), _cg = new Int16Array(64);
-  /** A＝位置與符號都對；B＝共有符號數（多重集合取小）− A */
+  /** 先算 A；每次出現只能配對一次，B＝共有符號數（多重集合取小）− A。 */
   function evaluate(secret, guess) {
     var a = 0, common = 0, i;
     for (i = 0; i < LEN; i++) {

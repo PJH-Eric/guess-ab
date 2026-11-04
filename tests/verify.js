@@ -60,6 +60,21 @@ test('教學頁範例：1234 vs 1325＝1A2B；池 AABCDE 下 ABAC vs AABD＝1A2B
   assert.ok(Core.validate([0, 1, 0, 2], 5, true, cnt).ok, '範例密碼合法');
   assert.ok(Core.validate([0, 0, 1, 3], 5, true, cnt).ok, '範例猜測合法');
 });
+test('重複數字優先算 A，每次出現只能配對一次', () => {
+  const secret = [5, 5, 4, 3];
+  const cases = [
+    { guess: [5, 2, 5, 5], result: { a: 1, b: 1 } },
+    { guess: [5, 2, 6, 7], result: { a: 1, b: 0 } },
+    { guess: [4, 3, 5, 5], result: { a: 0, b: 4 } },
+    { guess: [5, 5, 4, 3], result: { a: 4, b: 0 } },
+    { guess: [5, 5, 5, 2], result: { a: 2, b: 0 } }
+  ];
+  for (const { guess, result } of cases) {
+    assert.deepStrictEqual(Core.evaluate(secret, guess), result, guess.join(''));
+    assert.deepStrictEqual(Core.evaluate(guess, secret), result, '交換答案與猜測');
+  }
+});
+
 test('可重複的項目池：池裡有幾個就最多幾個', () => {
   const cnt = [2, 1, 3, 1];
   assert.strictEqual(Core.validate([0, 0, 1, 2], 4, true, cnt).ok, true);
