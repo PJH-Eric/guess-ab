@@ -330,6 +330,7 @@
 "lobby.create": "建立房间",
 "lobby.createSub": "自己当房主，选玩法和题型",
 "lobby.rooms": "房间列表",
+"lobby.online": "目前 {n} 人在线",
 "lobby.refresh": "重新整理",
 "lobby.noRooms": "目前没有房间，开一间吧！",
 "lobby.waitConn": "连上服务器后会显示房间",

@@ -9,6 +9,7 @@
   var K, G, Net;
   var room = null;          // 最新房間快照
   var rooms = [];             // 大廳房間列表
+  var online = null;          // 伺服器回報的在線人數（含自己）；null＝還不知道
   var invite = null;          // 待確認的邀請 { room, token }
   var shownResult = 0;        // 已顯示結算的局號
   var setupKey = '';          // 目前 GameView 對應的局（局號＋階段）
@@ -45,7 +46,8 @@
   function statusLine() {
     if (!Net.enabled) return '<div class="net-status bad">' + K.icon('cross') + '<span>' + esc(t('net.disabled')) + '</span></div>';
     var s = Net.status;
-    if (s === 'open') return '<div class="net-status ok">' + K.icon('check') + '<span>' + esc(t('net.open')) + '</span></div>';
+    if (s === 'open') return '<div class="net-status ok">' + K.icon('check') + '<span>' + esc(t('net.open')) + '</span>' +
+      (online != null ? '<span class="online-count" aria-live="polite">' + K.icon('users') + '<span>' + esc(t('lobby.online', { n: online })) + '</span></span>' : '') + '</div>';
     if (s === 'waking') return '<div class="net-status wake">' + root.GuessArt.svg('mascot', 5, 'wake-mascot') + '<span>' + esc(t('net.waking', { n: '\u0001' })).replace('\u0001', K.clockHtml('since', Net.wakeT0 || Date.now())) + '</span></div>';
     if (s === 'failed') return '<div class="net-status bad">' + K.icon('cross') + '<span>' + esc(t('net.failed')) + '</span><button type="button" class="btn small" id="net-retry">' + esc(t('net.retry')) + '</button></div>';
     return '<div class="net-status wake">' + K.icon('timer') + '<span>' + esc(t('net.' + (s === 'retrying' ? 'retrying' : 'connecting'), { n: Net.statusN || 0 })) + '</span></div>';
@@ -206,6 +208,12 @@
     var side = $('side');
     if (side && $('scr-room').contains(side)) $('scr-game').insertBefore(side, $('g-center'));
     var chatScroll = $('chat-list').scrollTop;
+    /* 每次房間狀態更新都會整頁重畫：記住捲動位置與焦點，調整設定時畫面才不會被拉回頂端 */
+    /* 桌機／平板是 .room-main 在捲，手機是整個 #scr-room 在捲，兩個都記 */
+    var oldMain = $('scr-room').querySelector('.room-main');
+    var mainScroll = oldMain ? oldMain.scrollTop : 0;
+    var screenScroll = $('scr-room').scrollTop;
+    var focusSel = focusSelector(doc.activeElement);
     var html = '<div class="room-wrap"><div class="room-side" id="room-side-slot"></div><div class="room-main scroll"><div class="page room">' +
       '<div class="room-head"><h1 class="page-title">' + esc(t('room.title', { id: r.id })) + '</h1><span class="pill">' + esc(t('mode.' + r.mode + 'Online')) + '</span><span class="pill st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</span></div>' +
       '<p class="room-tip">' + esc(t(you.role === 'spectator' ? 'room.tipSpec' : r.mode === 'duel' ? 'room.tipDuel' : 'room.tipRace')) + '</p>' +
@@ -227,6 +235,30 @@
     bindRoom();
     app().setTitle(t('room.title', { id: r.id }));
     app().fillIcons($('scr-room'));
+    fitSeats();
+    var main = $('scr-room').querySelector('.room-main');
+    if (main) main.scrollTop = mainScroll;
+    $('scr-room').scrollTop = screenScroll;
+    if (focusSel) { var f = $('scr-room').querySelector(focusSel); if (f && !f.disabled) f.focus({ preventScroll: true }); }
+  }
+  /** 房間內有焦點的元素 → 重畫後找回同一顆的選擇器（自己的 id，或「最近的 id 祖先＋data-v／data-d／data-sit」） */
+  function focusSelector(el) {
+    if (!el || el === doc.body || !$('scr-room').contains(el)) return null;
+    if (el.id) return '#' + el.id;
+    var host = el.parentElement && el.parentElement.closest('[id]');
+    if (!host || !$('scr-room').contains(host)) return null;
+    var attr = ['data-v', 'data-d', 'data-sit', 'data-kick'].find(function (a) { return el.hasAttribute(a); });
+    return attr ? '#' + host.id + ' [' + attr + '="' + String(el.getAttribute(attr)).replace(/["\\]/g, '\\$&') + '"]' : null;
+  }
+  /** 座位欄數：每張至少 220px，在放得下的前提下讓每列一樣多（6 人 → 6／3＋3／2＋2＋2，不會 5＋1） */
+  function fitSeats() {
+    var list = $('scr-room').querySelector('.seats');
+    if (!list || !list.children.length) return;
+    var n = list.children.length;
+    var gap = parseFloat(root.getComputedStyle(list).columnGap) || 10;
+    var maxCols = Math.max(1, Math.floor((list.clientWidth + gap) / (220 + gap)));
+    var rowsNeeded = Math.ceil(n / Math.min(n, maxCols));
+    list.style.setProperty('--seat-cols', String(Math.ceil(n / rowsNeeded)));
   }
   function inviteHtml() {
     if (!room.you.host) return '<p class="small">' + esc(t('room.inviteHostOnly')) + '</p>';
@@ -572,8 +604,9 @@
 
   function init() {
     K = root.Kit; G = root.GameView; Net = root.Net;
+    if (root.ResizeObserver) new root.ResizeObserver(fitSeats).observe($('scr-room'));
     Net.on('room', onRoom);
-    Net.on('lobby', function (m) { rooms = m.rooms || []; if (!room) forgetRoom();   // 伺服器說你不在房間裡（例如超過 30 秒），就不再自動回房
+    Net.on('lobby', function (m) { rooms = m.rooms || []; if (typeof m.online === 'number') online = m.online; if (!room) forgetRoom();   // 伺服器說你不在房間裡（例如超過 30 秒），就不再自動回房
       if (app().screen === 'lobby') renderLobby(); });
     Net.on('closed', onClosed);
     Net.on('left', function () { room = null; forgetRoom(); setupKey = ''; if (app().screen === 'room' || app().screen === 'game') app().show('lobby'); });
