@@ -313,7 +313,35 @@
   }
   if (doc) { if (doc.body) bootScroll(); else doc.addEventListener('DOMContentLoaded', bootScroll); }
 
+  /* ---------- 計時顯示：所有秒數都到小數第二位，10ms 一個 tick ---------- */
+  /** 毫秒 → 「12.34」或「4:05.67」（一分鐘以上） */
+  function fmtTime(ms) {
+    var cs = Math.max(0, Math.floor(ms / 10));
+    var m = Math.floor(cs / 6000), rest = cs % 6000;
+    var sec = Math.floor(rest / 100), c = rest % 100;
+    var tail = '.' + (c < 10 ? '0' : '') + c;
+    return m ? m + ':' + (sec < 10 ? '0' : '') + sec + tail : sec + tail;
+  }
+  /** 倒數（data-until＝本機時間戳）或正數（data-since）的時鐘元素 */
+  function clockHtml(kind, at, cls) {
+    var ms = kind === 'until' ? at - Date.now() : Date.now() - at;
+    return '<b class="clk ' + (cls || '') + '" data-' + kind + '="' + at + '">' + fmtTime(ms) + '</b>';
+  }
+  var clockTimer = null;
+  function tickClocks() {
+    var now = Date.now();
+    var els = document.querySelectorAll('.clk[data-until], .clk[data-since]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], u = el.getAttribute('data-until');
+      var txt = fmtTime(u != null ? Number(u) - now : now - Number(el.getAttribute('data-since')));
+      if (el.textContent !== txt) el.textContent = txt;
+    }
+  }
+  function startClocks() { if (!clockTimer && typeof document !== 'undefined') clockTimer = setInterval(tickClocks, 10); }
+  startClocks();
+
   root.Kit = {
+    fmtTime: fmtTime, clockHtml: clockHtml, tickClocks: tickClocks,
     esc: esc, h: h, icon: icon, sym: sym, symItem: symItem, symName: symName, csIcon: csIcon, toast: toast, Modal: Modal, menu: menu,
     switchHtml: switchHtml, bindSwitch: bindSwitch, stepperHtml: stepperHtml, bindStepper: bindStepper,
     segHtml: segHtml, bindSeg: bindSeg, refreshScroll: schedule

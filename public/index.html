@@ -7,18 +7,18 @@
 <title>密碼鎖 1A2B｜免費線上猜數字・字母・圖案</title>
 <!--SEO:HEAD-->
 <script>window.GAME_ANALYTICS_CONFIG={"measurement_id":"G-PG79WZK8QY","game_id":"guess-ab","page_location":"https://pjh-eric.github.io/guess-ab/"};</script>
-<meta name="description" data-i18n-content="doc.desc" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
+<meta name="description" data-i18n-content="doc.desc" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。五段難度、闖關 50 關、每日挑戰，也能線上多人競速、互相出題、觀戰聊天。">
 <link rel="canonical" href="https://pjh-eric.github.io/guess-ab/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_TW">
 <meta property="og:title" content="密碼鎖 1A2B｜免費線上猜數字・字母・圖案">
-<meta property="og:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
+<meta property="og:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。五段難度、闖關 50 關、每日挑戰，也能線上多人競速、互相出題、觀戰聊天。">
 <meta property="og:url" content="https://pjh-eric.github.io/guess-ab/">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="密碼鎖 1A2B｜免費線上猜數字・字母・圖案">
-<meta name="twitter:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"密碼鎖 1A2B","url":"https://pjh-eric.github.io/guess-ab/","description":"免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。四段電腦、闖關 400 關、每日挑戰，也能線上多人競速、觀戰聊天。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","genre":"益智","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"},"isPartOf":{"@type":"WebSite","url":"https://pjh-eric.github.io/game-lobby/"}}</script>
+<meta name="twitter:description" content="免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。五段難度、闖關 50 關、每日挑戰，也能線上多人競速、互相出題、觀戰聊天。">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"密碼鎖 1A2B","url":"https://pjh-eric.github.io/guess-ab/","description":"免費免下載的 1A2B 猜密碼遊戲：猜數字、英文字母、可愛圖案、國旗、台灣小吃與世界地標。五段難度、闖關 50 關、每日挑戰，也能線上多人競速、互相出題、觀戰聊天。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","genre":"益智","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"},"isPartOf":{"@type":"WebSite","url":"https://pjh-eric.github.io/game-lobby/"}}</script>
 <!--SEO:END-->
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="css/style.css">
@@ -48,6 +48,7 @@
     <section id="scr-solo" class="screen scroll"></section>
     <section id="scr-setup" class="screen scroll"></section>
     <section id="scr-levels" class="screen"></section>
+    <section id="scr-daily" class="screen scroll"></section>
     <section id="scr-stats" class="screen scroll"></section>
     <section id="scr-help" class="screen scroll"></section>
     <section id="scr-lobby" class="screen scroll"></section>
@@ -75,7 +76,7 @@
             <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
             <div class="counter" id="counter"></div>
           </div>
-          <div class="timer" id="timer" hidden><i></i></div>
+          <div class="timer-row" id="timer" hidden><div class="timer"><i></i></div><b class="timer-num clk"></b></div>
           <div class="slots" id="slots" role="group" data-i18n-attr="aria-label=game.slots"></div>
           <p class="input-note" id="input-note" aria-live="polite"></p>
         </div>
@@ -121,9 +122,7 @@
 <script src="js/lobby-link.js"></script>
 <script src="js/core/core.js"></script>
 <script src="js/core/spec-table.js"></script>
-<script src="js/core/levels-meta.js"></script>
 <script src="js/core/levels.js"></script>
-<script src="js/core/ai.js"></script>
 <script src="js/art/registry.js"></script>
 <script src="js/art/icons.js"></script>
 <script src="js/art/mascot.js"></script>

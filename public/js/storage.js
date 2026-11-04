@@ -11,10 +11,9 @@
     reduceMotion: false, colorAssist: false,
     inputMode: 'both',            // both／wheel／keypad
     autoSubmit: true, showKeys: 'auto', historyKeys: true,
-    lastSetup: { mode: 'guess', tier: 2, cs: 'digits', n: 10, rep: false, first: 'random' },
-    lastTier: 0,
-    stars: [[], [], [], []],      // 每個難度 100 關的星數（0＝未通關）
-    daily: { last: '', streak: 0, best: 0, bestSteps: {}, done: {} },
+    lastSetup: { tier: 2, cs: 'digits' },
+    stars: [[]],                  // 闖關 50 關的星數（0＝未通關）；v0.8 起只有一條路線
+    daily: { done: {}, tiers: {} }, // done['日期:難度']，tiers[難度]＝{ last, streak, best, won }
     stats: { games: 0, wins: 0, sumGuess: 0, fastest: 0, byKind: {}, dist: {}, byTier: {} }
   };
   var data = null;
@@ -32,7 +31,8 @@
       if (typeof DEFAULTS[k] === 'object' && !Array.isArray(DEFAULTS[k])) data[k] = Object.assign(clone(DEFAULTS[k]), raw[k]);
       else data[k] = raw[k];
     });
-    if (!Array.isArray(data.stars) || data.stars.length !== 4) data.stars = [[], [], [], []];
+    if (!Array.isArray(data.stars) || !Array.isArray(data.stars[0])) data.stars = [[]];
+    if (!data.daily.tiers) data.daily.tiers = {};
     return data;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 忽略 */ } }
@@ -43,7 +43,7 @@
   /** 恢復預設設定（暱稱、頭像、語言、進度與戰績保留） */
   function resetSettings() {
     var d = load();
-    var keep = { nickname: d.nickname, avatar: d.avatar, lang: d.lang, lastSetup: d.lastSetup, lastTier: d.lastTier, stars: d.stars, daily: d.daily, stats: d.stats };
+    var keep = { nickname: d.nickname, avatar: d.avatar, lang: d.lang, lastSetup: d.lastSetup, stars: d.stars, daily: d.daily, stats: d.stats };
     data = Object.assign(clone(DEFAULTS), keep);
     save();
     listeners.forEach(function (f) { try { f('*', null); } catch (e) { /* 忽略 */ } });
@@ -58,31 +58,31 @@
     return false;
   }
   function unlocked(tier, L) { return L === 1 || starsOf(tier, L - 1) > 0; }
-  function tierProgress(tier) { var a = load().stars[tier] || []; var c = 0, s = 0; for (var i = 0; i < 100; i++) { if (a[i]) { c++; s += a[i]; } } return { cleared: c, stars: s }; }
+  function tierProgress(tier, from, to) { var a = load().stars[tier] || []; var c = 0, s = 0; for (var i = (from || 1) - 1; i < (to || 50); i++) { if (a[i]) { c++; s += a[i]; } } return { cleared: c, stars: s }; }
 
-  /* ---------- 每日挑戰 ---------- */
-  function dailyDone(date) { return load().daily.done[date] || null; }
-  function recordDaily(date, prevDate, won, steps) {
+  /* ---------- 每日挑戰（五個難度各自記錄） ---------- */
+  function dailyDone(date, tier) { return load().daily.done[date + ':' + tier] || null; }
+  function recordDaily(date, prevDate, tier, won, steps) {
     var d = load().daily;
-    if (d.done[date]) return d;
-    d.done[date] = { won: !!won, steps: steps };
+    var key = date + ':' + tier;
+    var tt = d.tiers[tier] || (d.tiers[tier] = { last: '', streak: 0, best: 0, won: false });
+    if (d.done[key]) return tt;
+    d.done[key] = { won: !!won, steps: steps };
     var keys = Object.keys(d.done).sort();
-    if (keys.length > 60) keys.slice(0, keys.length - 60).forEach(function (k) { delete d.done[k]; });
-    if (won) {
-      d.streak = (d.last === prevDate && d.streakWon !== false) ? d.streak + 1 : 1;
-      d.best = Math.max(d.best, d.streak);
-    } else d.streak = 0;
-    d.streakWon = !!won;
-    d.last = date;
+    if (keys.length > 300) keys.slice(0, keys.length - 300).forEach(function (k) { delete d.done[k]; });
+    if (won) { tt.streak = (tt.last === prevDate && tt.won) ? tt.streak + 1 : 1; tt.best = Math.max(tt.best, tt.streak); }
+    else tt.streak = 0;
+    tt.won = !!won; tt.last = date;
     save();
-    return d;
+    return tt;
   }
-  /** 今天之前最後一天不是昨天＝連勝已中斷（只用於顯示） */
-  function liveStreak(today, yesterday) {
-    var d = load().daily;
-    if (d.last === today || d.last === yesterday) return d.streak;
-    return 0;
+  /** 目前連勝（最後一次不是今天或昨天＝已中斷） */
+  function liveStreak(today, yesterday, tier) {
+    var tt = load().daily.tiers[tier];
+    if (!tt) return 0;
+    return tt.last === today || tt.last === yesterday ? tt.streak : 0;
   }
+  function bestStreak() { var t = load().daily.tiers, b = 0; Object.keys(t).forEach(function (k) { b = Math.max(b, t[k].best || 0); }); return b; }
 
   /* ---------- 戰績 ---------- */
   function record(o) {
@@ -125,7 +125,7 @@
   root.Store = {
     get: get, set: set, onChange: onChange, resetSettings: resetSettings, DEFAULTS: DEFAULTS, save: save,
     starsOf: starsOf, setStars: setStars, unlocked: unlocked, tierProgress: tierProgress,
-    dailyDone: dailyDone, recordDaily: recordDaily, liveStreak: liveStreak, record: record, clientId: clientId,
+    dailyDone: dailyDone, recordDaily: recordDaily, liveStreak: liveStreak, bestStreak: bestStreak, record: record, clientId: clientId,
     _reload: function () { data = null; return load(); }
   };
 })(typeof self !== 'undefined' ? self : this);

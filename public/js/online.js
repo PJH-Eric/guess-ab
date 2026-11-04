@@ -34,8 +34,9 @@
       this.wake();
     },
     async wake() {
-      this.setStatus('waking');
       const t0 = Date.now();
+      this.wakeT0 = t0;
+      this.setStatus('waking');
       while (this.wantOn) {
         try {
           const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 6000);

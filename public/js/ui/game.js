@@ -165,7 +165,11 @@
   /* ---------- 狀態 → 畫面 ---------- */
   function dupSet() {
     var d = {};
-    if (cfg.spec.rep) return d;
+    if (cfg.spec.rep) {
+      /* 可重複：同一個符號最多 3 次，4 格全一樣才算不合法 */
+      if (input.every(function (v) { return v != null && v === input[0]; })) d = { 0: 1, 1: 1, 2: 1, 3: 1 };
+      return d;
+    }
     var seen = {};
     input.forEach(function (v, s) { if (v == null) return; if (seen[v] != null) { d[s] = 1; d[seen[v]] = 1; } else seen[v] = s; });
     return d;
@@ -205,7 +209,7 @@
     $('k-back').disabled = !enabled || input.every(function (v) { return v == null; });
     $('k-clear').disabled = $('k-back').disabled;
     var note = '';
-    if (Object.keys(dup).length) note = t('game.dupNote');
+    if (Object.keys(dup).length) note = t(cfg.spec.rep ? 'game.tooManyNote' : 'game.dupNote');
     $('input-note').textContent = note;
     $('input-note').classList.toggle('warn', !!note);
   }
@@ -439,23 +443,30 @@
     renderHistory();
   }
   function setCounter(text) { $('counter').textContent = text || ''; $('counter').hidden = !text; }
-  var timerRaf = null;
-  /** 倒數條：deadline（毫秒時間戳）與總長 */
+  var timerTick = null;
+  /** 倒數條＋數字：deadline（伺服器毫秒時間戳）、總長、與伺服器的時差；10ms 一個 tick、秒數到小數第二位 */
   function setTimer(deadline, total, offset) {
     var el = $('timer');
-    cancelAnimationFrame(timerRaf);
-    if (!deadline) { el.hidden = true; return; }
+    clearInterval(timerTick);
+    var num = el.querySelector('.timer-num');
+    if (!deadline) { el.hidden = true; num.removeAttribute('data-until'); return; }
     el.hidden = false;
-    var bar = el.firstElementChild;
+    var local = deadline - (offset || 0);      // 換成本機時間
+    num.setAttribute('data-until', String(local));
+    var bar = el.querySelector('.timer i');
+    var lastSec = -1;
     function step() {
-      var left = deadline - (Date.now() + (offset || 0));
+      var left = local - Date.now();
       var f = Math.max(0, Math.min(1, left / total));
       bar.style.transform = 'scaleX(' + f + ')';
-      el.classList.toggle('low', left < 3000);
-      el.setAttribute('aria-label', t('game.timeLeft', { s: Math.max(0, Math.ceil(left / 1000)) }));
-      if (left > 0) timerRaf = requestAnimationFrame(step);
+      num.textContent = K.fmtTime(left);
+      el.classList.toggle('low', left < Math.min(10000, total * 0.2));
+      var sec = Math.max(0, Math.ceil(left / 1000));
+      if (sec !== lastSec) { lastSec = sec; el.setAttribute('aria-label', t('game.timeLeft', { s: K.fmtTime(left) })); }
+      if (left <= 0) clearInterval(timerTick);
     }
     step();
+    timerTick = setInterval(step, 10);
   }
   function feedback(a, b) {
     root.Sound.feedback(a, b);

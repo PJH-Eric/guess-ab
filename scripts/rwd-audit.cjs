@@ -13,30 +13,48 @@ const BASE = process.env.BASE || 'http://localhost:3100/';
 const VIEWS = [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], ['tabP', 820, 1180], ['tabL', 1180, 820], ['desk', 1440, 900]];
 const LANGS = (process.env.LANGS || 'zh-Hant,en').split(',');
 
+/* 線上場景要第二位玩家：另開一個瀏覽器分頁，用房號加入並按準備 */
+let BROWSER = null;
+async function second(p, extra) {
+  const id = await p.evaluate(() => OnlineUI.room && OnlineUI.room.id);
+  const ctx = await BROWSER.newContext({ viewport: { width: 800, height: 600 } });
+  const q = await ctx.newPage();
+  await q.goto(BASE); await q.waitForTimeout(300);
+  await q.evaluate(() => OnlineUI.enterLobby()); await q.waitForTimeout(700);
+  await q.evaluate(id => Net.send({ type: 'join', roomId: id, name: '第二位玩家', want: 'player' }), id); await q.waitForTimeout(400);
+  await q.evaluate(() => Net.send({ type: 'ready', value: true })); await q.waitForTimeout(200);
+  if (extra) await extra(q);
+  return ctx;
+}
 const SCENES = {
   home: async p => {},
   solo: async p => p.evaluate(() => App.show('solo')),
-  setup: async p => p.evaluate(() => App.openSetup('duel')),
+  setup: async p => p.evaluate(() => App.openSetup()),
   levels: async p => p.evaluate(() => App.show('levels')),
+  daily: async p => p.evaluate(() => App.show('daily')),
   stats: async p => p.evaluate(() => App.show('stats')),
   help: async p => p.evaluate(() => App.show('help')),
-  game: async p => { await p.evaluate(() => Solo.start({ mode: 'guess', tier: 1, cs: 'pack-tw', n: 12, rep: false })); await p.evaluate(() => { const c = GameView.cfg; [0, 1, 2, 3].forEach(v => GameView._press(v)); }); await p.waitForTimeout(400); await p.evaluate(() => { GameView._press(5); GameView._press(6); }); },
-  gameBig: async p => { await p.evaluate(() => Solo.start({ mode: 'guess', tier: 2, cs: 'mix', n: 40, rep: true })); },
+  game: async p => { await p.evaluate(() => Solo.start({ mode: 'guess', tier: 1, cs: 'pack-tw' })); await p.evaluate(() => { [0, 1, 2, 3].forEach(v => GameView._press(v)); }); await p.waitForTimeout(400); await p.evaluate(() => { GameView._press(4); GameView._press(1); }); },
+  gameMyth: async p => { await p.evaluate(() => Solo.start({ mode: 'guess', tier: 4, cs: 'mix' })); await p.evaluate(() => [0, 0, 0, 0].forEach(v => GameView._press(v))); },
+  gameL50: async p => { await p.evaluate(() => Solo.start({ mode: 'level', level: 50 })); },
   gameHist: async p => { await SCENES.game(p); await p.evaluate(() => GameView.showTab('hist')); },
-  result: async p => { await p.evaluate(() => Solo.start({ mode: 'level', level: { tier: 0, L: 1 } })); await p.evaluate(() => Solo.active.secret.forEach(v => GameView._press(v))); await p.waitForTimeout(1200); },
-  duel: async p => { await p.evaluate(() => Solo.start({ mode: 'duel', tier: 2, cs: 'digits', n: 10, rep: false, first: 'me' })); await p.evaluate(() => [1, 2, 3, 4].forEach(v => GameView._press(v))); await p.waitForTimeout(500); },
+  result: async p => { await p.evaluate(() => Solo.start({ mode: 'level', level: 1 })); await p.evaluate(() => Solo.active.secret.forEach(v => GameView._press(v))); await p.waitForTimeout(1200); },
+  dailyGame: async p => { await p.evaluate(() => Solo.start({ mode: 'daily', tier: 3 })); },
   settings: async p => { await p.click('#btn-settings'); },
   pause: async p => { await SCENES.game(p); await p.evaluate(() => Solo.pause()); },
   hint: async p => { await SCENES.game(p); await p.evaluate(() => { const b = document.querySelector('[data-hint="has"]'); b && b.click(); }); },
   side: async p => { await SCENES.game(p); await p.evaluate(() => App.openSide()); },
   lobby: async p => { await p.evaluate(() => OnlineUI.enterLobby()); await p.waitForTimeout(900); },
-  room: async p => { await SCENES.lobby(p); await p.evaluate(() => Net.send({ type: 'create', mode: 'race', name: '測試玩家名字很長很長', settings: { cs: 'pack-landmark', n: 12 } })); await p.waitForTimeout(700); },
-  online: async p => { await SCENES.room(p); await p.evaluate(() => Net.send({ type: 'add_ai', seat: 1, level: 1 })); await p.waitForTimeout(300); await p.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(800); }
+  room: async p => { await SCENES.lobby(p); await p.evaluate(() => Net.send({ type: 'create', mode: 'race', name: '測試玩家名字很長很長', settings: { tier: 3, cs: 'pack-landmark', minutes: 3 } })); await p.waitForTimeout(700); },
+  roomDuel: async p => { await SCENES.lobby(p); await p.evaluate(() => Net.send({ type: 'create', mode: 'duel', name: '測試玩家', settings: { tier: 2, cs: 'random', turnSec: 15 } })); await p.waitForTimeout(700); },
+  online: async p => { await SCENES.room(p); p._c2 = await second(p); await p.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(900); },
+  duelSetup: async p => { await SCENES.roomDuel(p); p._c2 = await second(p); await p.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(900); },
+  duelPlay: async p => { await SCENES.duelSetup(p); await p.evaluate(() => { const g = OnlineUI.room.game; const me = g.players[OnlineUI.room.you.seat]; Net.send({ type: 'secret', code: me.myDefault }); }); const q = p._c2.pages()[0]; await q.evaluate(() => { const g = OnlineUI.room.game; Net.send({ type: 'secret', code: g.players[OnlineUI.room.you.seat].myDefault }); }); await p.waitForTimeout(900); }
 };
 const ONLY = process.env.SCENES ? process.env.SCENES.split(',') : Object.keys(SCENES);
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(); BROWSER = browser;
   const report = [];
   for (const lang of LANGS) for (const [vn, w, h] of VIEWS) for (const sn of ONLY) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: vn !== 'desk', isMobile: vn.startsWith('phone') });
@@ -65,7 +83,7 @@ const ONLY = process.env.SCENES ? process.env.SCENES.split(',') : Object.keys(SC
       document.querySelectorAll('select, textarea, input[type=checkbox], input[type=radio], input[type=range]').forEach(el => { if (vis(el)) out.push('native: ' + el.tagName); });
       const modal = document.querySelector('.modal');
       if (modal) { const r = modal.getBoundingClientRect(); if (r.top < -1 || r.bottom > vh + 1 || r.left < -1 || r.right > vw + 1) out.push('modal-out'); }
-      if (/^game|duel|pause|hint|online/.test(sn) && document.getElementById('app').getAttribute('data-gt') === 'play') {
+      if (/^game|duelPlay|pause|hint|online|dailyGame/.test(sn) && document.getElementById('app').getAttribute('data-gt') === 'play') {
         const k = document.querySelector('#keys .key');
         const sub = document.getElementById('k-submit');
         const wl = document.querySelector('#slots .wheel');
@@ -82,6 +100,7 @@ const ONLY = process.env.SCENES ? process.env.SCENES.split(',') : Object.keys(SC
     const all = errs.map(e => 'js: ' + e).concat(issues);
     report.push({ lang, view: vn, scene: sn, file, issues: all });
     if (all.length) console.log('✗ ' + lang + ' ' + vn + ' ' + sn + '：' + all.join(' ｜ '));
+    if (p._c2) await p._c2.close();
     await ctx.close();
   }
   fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 1));

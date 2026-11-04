@@ -8,7 +8,6 @@
   var K, Store = root.Store;
   var screen = 'boot';
   var setupState = null;
-  var levelTier = 0;
   var statsTab = 'all';
 
   function $(id) { return doc.getElementById(id); }
@@ -25,7 +24,7 @@
   }
 
   /* ---------- 畫面切換 ---------- */
-  var SCREENS = ['home', 'solo', 'setup', 'levels', 'stats', 'help', 'lobby', 'room', 'game'];
+  var SCREENS = ['home', 'solo', 'setup', 'levels', 'daily', 'stats', 'help', 'lobby', 'room', 'game'];
   function show(name, opt) {
     opt = opt || {};
     if (SCREENS.indexOf(name) < 0) name = 'home';
@@ -80,32 +79,35 @@
   function goBack() {
     if (K.Modal.top()) { K.Modal.top().close(); return; }
     switch (screen) {
-      case 'solo': case 'stats': case 'help': show('home'); break;
+      case 'solo': case 'stats': case 'help': case 'daily': show('home'); break;
       case 'setup': case 'levels': show('solo'); break;
       case 'lobby': root.OnlineUI.exitLobby(); break;
       case 'room': root.OnlineUI.confirmLeave(); break;
       case 'game':
         if (root.OnlineUI && root.OnlineUI.inRoom()) { root.OnlineUI.confirmLeave(); break; }
         var a = root.Solo.active;
-        if (a && !a.over && (a.rows.length || a.aiRows.length || a.mySecret)) {
+        if (a && !a.over && a.rows.some(function (r) { return !r.hint; })) {
           K.Modal({ title: t('leave.title'), body: '<p>' + esc(t('leave.body')) + '</p>', actions: [
             { label: t('common.stay'), kind: 'ghost' },
-            { label: t('leave.ok'), kind: 'danger', onClick: function () { root.Solo.stop(); show(a.mode === 'level' ? 'levels' : a.mode === 'daily' ? 'home' : 'setup'); } }] });
-        } else { root.Solo.stop(); show(a && a.mode === 'level' ? 'levels' : a && a.mode === 'daily' ? 'home' : a ? 'setup' : 'home'); }
+            { label: t('leave.ok'), kind: 'danger', onClick: function () { root.Solo.stop(); show(backOf(a)); } }] });
+        } else { root.Solo.stop(); show(backOf(a)); }
         break;
       default: show('home');
     }
   }
 
+  function backOf(a) { return !a ? 'home' : a.mode === 'level' ? 'levels' : a.mode === 'daily' ? 'daily' : 'setup'; }
+
   /* ---------- 首頁 ---------- */
   function todayInfo() {
     var today = Core.taipeiDate();
     var y = Core.taipeiDate(Date.now() - 86400000);
-    return { info: Levels.dailyInfo(today), done: Store.dailyDone(today), streak: Store.liveStreak(today, y) };
+    var done = 0, streak = 0;
+    for (var k = 0; k < Core.TIERS; k++) { if (Store.dailyDone(today, k)) done++; streak = Math.max(streak, Store.liveStreak(today, y, k)); }
+    return { today: today, yesterday: y, done: done, streak: streak };
   }
   function renderHome() {
     var d = todayInfo();
-    var info = d.info;
     $('scr-home').innerHTML =
       '<div class="home">' +
       '<div class="hero"><div class="hero-art">' + root.GuessArt.svg('mascot', 0, 'hero-mascot') +
@@ -118,14 +120,14 @@
       '<button type="button" class="big-btn b-help" id="h-help">' + K.icon('book') + '<span><b>' + esc(t('home.help')) + '</b><small>' + esc(t('home.helpSub')) + '</small></span></button>' +
       '</div>' +
       '<div class="home-sub">' +
-      '<button type="button" class="daily-card" id="h-daily"><span class="dc-ico">' + K.csIcon(info.spec.cs, 'dc-cs') + '</span><span class="dc-text"><b>' + esc(t('home.daily')) + '</b><small>' + esc(t('cs.' + info.spec.cs) + '・' + t('spec.n', { n: info.spec.n }) + (info.spec.rep ? '・' + t('spec.rep') : '')) + '</small></span>' +
-      '<span class="dc-state">' + (d.done ? '<i class="done">' + K.icon('check') + esc(t('home.dailyDone')) + '</i>' : '<i>' + esc(t('home.dailyGo')) + '</i>') + '<i class="streak">' + K.icon('flame') + d.streak + '</i></span></button>' +
+      '<button type="button" class="daily-card" id="h-daily"><span class="dc-ico">' + K.icon('calendar', 'dc-cs') + '</span><span class="dc-text"><b>' + esc(t('home.daily')) + '</b><small>' + esc(t('home.dailySub')) + '</small></span>' +
+      '<span class="dc-state"><i class="' + (d.done === Core.TIERS ? 'done' : '') + '">' + (d.done === Core.TIERS ? K.icon('check') : '') + esc(t('home.dailyCount', { n: d.done, max: Core.TIERS })) + '</i><i class="streak">' + K.icon('flame') + d.streak + '</i></span></button>' +
       '<button type="button" class="small-card" id="h-stats">' + K.icon('chart') + '<span>' + esc(t('home.stats')) + '</span></button>' +
       '</div></div>';
     $('h-solo').onclick = function () { show('solo'); };
     $('h-online').onclick = function () { root.OnlineUI.enterLobby(); };
     $('h-help').onclick = function () { show('help'); };
-    $('h-daily').onclick = function () { root.Solo.start({ mode: 'daily' }); };
+    $('h-daily').onclick = function () { show('daily'); };
     $('h-stats').onclick = function () { show('stats'); };
   }
 
@@ -133,8 +135,6 @@
   function renderSolo() {
     var items = [
       ['guess', 'key', 'solo.guess', 'solo.guessSub'],
-      ['aiGuess', 'robot', 'solo.aiGuess', 'solo.aiGuessSub'],
-      ['duel', 'users', 'solo.duel', 'solo.duelSub'],
       ['levels', 'map', 'solo.levels', 'solo.levelsSub'],
       ['daily', 'calendar', 'solo.daily', 'solo.dailySub']
     ];
@@ -146,107 +146,118 @@
       b.addEventListener('click', function () {
         var m = b.getAttribute('data-m');
         if (m === 'levels') show('levels');
-        else if (m === 'daily') root.Solo.start({ mode: 'daily' });
-        else openSetup(m);
+        else if (m === 'daily') show('daily');
+        else openSetup();
       });
     });
   }
 
-  /* ---------- 開局設定 ---------- */
-  function csItems() {
+  /* ---------- 開局設定（只選難度與猜的種類；項目數與重複由難度隨機決定） ---------- */
+  function csItems(withRandom) {
     var list = [];
+    if (withRandom) list.push({ value: 'random', label: t('cs.random'), icon: K.icon('shuffle', 'menu-ico'), group: t('csg.random') });
     ['digits', 'letters', 'gems'].forEach(function (c) { list.push({ value: c, label: t('cs.' + c), icon: K.csIcon(c, 'menu-ico'), group: t('csg.basic') }); });
     Core.CUTE_PACKS.forEach(function (p) { list.push({ value: 'pack-' + p, label: t('cs.pack-' + p), icon: K.csIcon('pack-' + p, 'menu-ico'), group: t('csg.cute') }); });
     Core.REAL_PACKS.forEach(function (p) { list.push({ value: 'pack-' + p, label: t('cs.pack-' + p), icon: K.csIcon('pack-' + p, 'menu-ico'), group: t('csg.real') }); });
     list.push({ value: 'mix', label: t('cs.mix'), icon: K.csIcon('mix', 'menu-ico'), group: t('csg.mix') });
     return list;
   }
-  function openSetup(mode) {
+  function csLabelIcon(cs) { return cs === 'random' ? K.icon('shuffle', 'menu-ico') : K.csIcon(cs, 'menu-ico'); }
+  function tierItems() { var out = []; for (var x = 0; x < Core.TIERS; x++) out.push({ value: String(x), label: t('tier.' + x) }); return out; }
+  function openSetup() {
     var last = Store.get('lastSetup') || {};
-    setupState = { mode: mode, tier: last.tier != null ? last.tier : 2, cs: Core.charset(last.cs) ? last.cs : 'digits', n: last.n || 10, rep: !!last.rep, first: last.first || 'random', seed: Core.randomSeed() };
-    setupState.n = Core.clampN(setupState.cs, setupState.n);
+    setupState = { tier: last.tier >= 0 && last.tier < Core.TIERS ? last.tier : 2, cs: last.cs === 'random' || Core.charset(last.cs) ? last.cs : 'digits', seed: Core.randomSeed() };
     show('setup');
   }
   function renderSetup() {
     var s = setupState;
-    if (!s) { openSetup('guess'); return; }
-    var c = Core.charset(s.cs);
-    var tierItems = [0, 1, 2, 3].map(function (x) { return { value: String(x), label: t('tier.' + x) }; });
-    var spec = Core.makeSpec({ cs: s.cs, n: s.n, rep: s.rep }, 'solo:' + s.seed);
-    var size = Core.spaceSize(s.n, s.rep);
-    var limit = Table.limit(s.tier, s.n, s.rep);
-    var html = '<div class="page setup"><h1 class="page-title">' + esc(t('mode.' + s.mode)) + '</h1>' +
+    if (!s) { openSetup(); return; }
+    var spec = Core.tierSpec(s.tier, s.cs, 'solo:' + s.seed);
+    var range = Core.TIER_N[s.tier];
+    var html = '<div class="page setup"><h1 class="page-title">' + esc(t('mode.guess')) + '</h1>' +
       '<div class="form">' +
-      '<div class="field"><span class="f-label" id="lb-tier">' + esc(t(s.mode === 'guess' ? 'setup.tier' : 'setup.aiTier')) + '</span>' + K.segHtml('f-tier', tierItems, String(s.tier), t('setup.tier')) +
-      '<small class="f-help">' + esc(t('tierHelp.' + (s.mode === 'guess' ? 'g' : 'a') + s.tier)) + '</small></div>' +
-      '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="f-cs" aria-haspopup="listbox" aria-expanded="false">' + K.csIcon(s.cs, 'menu-ico') + '<span>' + esc(t('cs.' + s.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
-      '<div class="field row2"><div><span class="f-label">' + esc(t('setup.n')) + '</span>' + K.stepperHtml('f-n', s.n, t('setup.n')) + '<small class="f-help">' + esc(t('setup.nRange', { min: c.min, max: c.max })) + '</small></div>' +
-      '<div><span class="f-label" id="lb-rep">' + esc(t('setup.rep')) + '</span><div class="switch-row">' + K.switchHtml('f-rep', s.rep, t('setup.rep')) + '<span>' + esc(s.rep ? t('setup.repOn') : t('setup.repOff')) + '</span></div></div></div>' +
-      (s.mode === 'duel' ? '<div class="field"><span class="f-label">' + esc(t('setup.first')) + '</span>' + K.segHtml('f-first', [{ value: 'random', label: t('first.random') }, { value: 'me', label: t('first.me') }, { value: 'ai', label: t('first.ai') }], s.first, t('setup.first')) + '</div>' : '') +
-      '<div class="field"><span class="f-label">' + esc(t('setup.pool')) + '<button type="button" class="link-btn" id="f-reroll">' + K.icon('shuffle') + esc(t('setup.reroll')) + '</button></span>' +
+      '<div class="field"><span class="f-label">' + esc(t('setup.tier')) + '</span>' + K.segHtml('f-tier', tierItems(), String(s.tier), t('setup.tier')) +
+      '<small class="f-help">' + esc(t('tierHelp.' + s.tier, { a: range[0], b: range[1] })) + '</small></div>' +
+      '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="f-cs" aria-haspopup="listbox" aria-expanded="false">' + csLabelIcon(s.cs) + '<span>' + esc(t('cs.' + s.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
+      '<div class="field"><span class="f-label">' + esc(t('setup.preview')) + '<button type="button" class="link-btn" id="f-reroll">' + K.icon('shuffle') + esc(t('setup.reroll')) + '</button></span>' +
+      '<p class="setup-info">' + K.icon('dice') + '<span>' + esc(t('setup.rolled', { cs: t('cs.' + spec.cs), n: spec.n, rep: spec.rep ? t('spec.rep3') : t('spec.norep') })) + '</span></p>' +
       '<div class="pool big">' + spec.pool.map(function (id, i) { return '<span class="pool-sym" title="' + esc(K.symName(spec, i)) + '">' + K.sym(spec, i, 'pool-svg') + '</span>'; }).join('') + '</div></div>' +
-      '<p class="setup-info">' + K.icon('question') + '<span>' + esc(t('setup.info', { size: size.toLocaleString(), limit: limit ? t('sum.limitN', { n: limit }) : t('sum.unlimited') })) + '</span></p>' +
+      '<p class="setup-info">' + K.icon('question') + '<span>' + esc(t('setup.noLimit', { p: Table.par(s.tier, spec.n, spec.rep) })) + '</span></p>' +
       '</div><div class="page-actions"><button type="button" class="btn primary big" id="f-start">' + K.icon('play') + '<span>' + esc(t('setup.start')) + '</span></button></div></div>';
     $('scr-setup').innerHTML = html;
-    function save() { Store.set('lastSetup', { mode: s.mode, tier: s.tier, cs: s.cs, n: s.n, rep: s.rep, first: s.first }); }
-    K.bindSeg($('f-tier'), function (v) { s.tier = Number(v); save(); renderSetupKeep(); });
-    if ($('f-first')) K.bindSeg($('f-first'), function (v) { s.first = v; save(); });
-    K.bindStepper($('f-n'), function () { return s.n; }, function (v) { s.n = v; save(); renderSetupKeep('f-n'); }, function () { return c.min; }, function () { return c.max; });
-    K.bindSwitch($('f-rep'), function (v) { s.rep = v; save(); renderSetupKeep('f-rep'); });
+    function save() { Store.set('lastSetup', { tier: s.tier, cs: s.cs }); }
+    K.bindSeg($('f-tier'), function (v) { s.tier = Number(v); save(); renderSetupKeep('f-tier'); });
     $('f-cs').addEventListener('click', function () {
-      K.menu($('f-cs'), { items: csItems(), value: s.cs, wide: true, label: t('setup.cs'), onPick: function (v) { s.cs = v; s.n = Core.clampN(v, s.n); save(); renderSetupKeep('f-cs'); } });
+      K.menu($('f-cs'), { items: csItems(true), value: s.cs, wide: true, label: t('setup.cs'), onPick: function (v) { s.cs = v; save(); renderSetupKeep('f-cs'); } });
     });
     $('f-reroll').addEventListener('click', function () { s.seed = Core.randomSeed(); root.Sound.play('tick'); renderSetupKeep('f-reroll'); });
     $('f-start').addEventListener('click', function () {
-      root.Solo.start({ mode: s.mode, tier: s.tier, cs: s.cs, n: s.n, rep: s.rep, first: s.first, seed: 'solo:' + s.seed });
+      root.Solo.start({ mode: 'guess', tier: s.tier, cs: s.cs, spec: spec });
       s.seed = Core.randomSeed();
     });
     fillIcons($('scr-setup'));
   }
   function renderSetupKeep(focusId) {
     var y = $('scr-setup').scrollTop;
-    var active = focusId || (doc.activeElement && doc.activeElement.id);
     renderSetup();
     $('scr-setup').scrollTop = y;
-    var el = active && $(active);
-    if (el) { var b = el.matches('.stepper') ? el.querySelector('.step-val') : el; try { (el.matches('.seg') ? el.querySelector('[aria-checked="true"]') : el.matches('.stepper') ? el : el).focus({ preventScroll: true }); } catch (e) { /* 忽略 */ } }
+    var el = focusId && $(focusId);
+    if (el) { try { (el.matches('.seg') ? el.querySelector('[aria-checked="true"]') : el).focus({ preventScroll: true }); } catch (e) { /* 忽略 */ } }
     K.refreshScroll();
   }
 
-  /* ---------- 闖關 ---------- */
+  /* ---------- 闖關（50 關，每 10 關一段難度） ---------- */
   function renderLevels() {
-    var tier = levelTier;
-    var prog = Store.tierProgress(tier);
-    var tierItems = [0, 1, 2, 3].map(function (x) { return { value: String(x), label: t('tier.' + x) }; });
-    var cards = '';
-    for (var L = 1; L <= 100; L++) {
-      var sp = Levels.specFor(tier, L);
-      var st = Store.starsOf(tier, L);
-      var open = Store.unlocked(tier, L);
-      var boss = L % 10 === 0;
-      cards += '<button type="button" class="lv-card' + (boss ? ' boss' : '') + (st ? ' cleared' : '') + '" data-l="' + L + '"' + (open ? '' : ' disabled aria-disabled="true"') +
-        ' aria-label="' + esc(t('level.aria', { n: L, cs: t('cs.' + sp.cs), k: sp.n, rep: sp.rep ? t('spec.rep') : t('spec.norep'), s: st })) + (open ? '' : '，' + esc(t('level.locked'))) + '">' +
-        '<b class="lv-no">' + L + '</b><span class="lv-cs">' + K.csIcon(sp.cs, 'lv-svg') + '</span><span class="lv-spec">' + sp.n + (sp.rep ? '<i class="rep-mark">' + K.icon('refresh') + '</i>' : '') + '</span>' +
-        '<span class="lv-stars">' + (open ? [0, 1, 2].map(function (i) { return '<i class="' + (i < st ? 'on' : '') + '">' + K.icon(i < st ? 'star' : 'star-empty') + '</i>'; }).join('') : '<i class="lock">' + K.icon('lock') + '</i>') + '</span></button>';
+    var prog = Store.tierProgress(0, 1, Levels.COUNT);
+    var html = '<div class="page levels"><div class="lv-head"><h1 class="page-title">' + esc(t('title.levels')) + '</h1>' +
+      '<p class="lv-prog">' + esc(t('level.progress', { c: prog.cleared, max: Levels.COUNT, s: prog.stars })) + '</p></div><div class="lv-scroll scroll" id="lv-grid">';
+    for (var tier = 0; tier < Core.TIERS; tier++) {
+      var from = tier * 10 + 1, to = from + 9;
+      var tp = Store.tierProgress(0, from, to);
+      html += '<section class="lv-block"><h2 class="lv-block-title"><span class="tier-badge t' + tier + '">' + esc(t('tier.' + tier)) + '</span><small>' + esc(t('level.range', { a: from, b: to })) + '・' + esc(t('level.blockProg', { c: tp.cleared, s: tp.stars })) + '</small></h2><div class="lv-grid">';
+      for (var L = from; L <= to; L++) {
+        var sp = Levels.specFor(L);
+        var st = Store.starsOf(0, L);
+        var open = Store.unlocked(0, L);
+        var boss = L % 10 === 0;
+        html += '<button type="button" class="lv-card t' + tier + (boss ? ' boss' : '') + (st ? ' cleared' : '') + '" data-l="' + L + '"' + (open ? '' : ' disabled aria-disabled="true"') +
+          ' aria-label="' + esc(t('level.aria', { n: L, t: t('tier.' + tier), cs: t('cs.' + sp.cs), k: sp.n, rep: sp.rep ? t('spec.rep3') : t('spec.norep'), s: st })) + (open ? '' : '，' + esc(t('level.locked'))) + '">' +
+          '<b class="lv-no">' + L + '</b><span class="lv-cs">' + K.csIcon(sp.cs, 'lv-svg') + '</span><span class="lv-spec">' + sp.n + (sp.rep ? '<i class="rep-mark">' + K.icon('refresh') + '</i>' : '') + '</span>' +
+          '<span class="lv-stars">' + (open ? [0, 1, 2].map(function (i) { return '<i class="' + (i < st ? 'on' : '') + '">' + K.icon(i < st ? 'star' : 'star-empty') + '</i>'; }).join('') : '<i class="lock">' + K.icon('lock') + '</i>') + '</span></button>';
+      }
+      html += '</div></section>';
     }
-    $('scr-levels').innerHTML = '<div class="page levels"><div class="lv-head"><h1 class="page-title">' + esc(t('title.levels')) + '</h1>' +
-      K.segHtml('lv-tier', tierItems, String(tier), t('setup.tier')) +
-      '<p class="lv-prog">' + esc(t('level.progress', { c: prog.cleared, s: prog.stars })) + '</p></div>' +
-      '<div class="lv-grid scroll" id="lv-grid">' + cards + '</div></div>';
-    K.bindSeg($('lv-tier'), function (v) { levelTier = Number(v); Store.set('lastTier', levelTier); renderLevels(); var b = $('lv-tier').querySelector('[aria-checked="true"]'); if (b) b.focus(); });
+    $('scr-levels').innerHTML = html + '</div></div>';
     $('lv-grid').addEventListener('click', function (e) {
       var b = e.target.closest('.lv-card'); if (!b || b.disabled) return;
-      root.Solo.start({ mode: 'level', level: { tier: levelTier, L: Number(b.getAttribute('data-l')) } });
+      root.Solo.start({ mode: 'level', level: Number(b.getAttribute('data-l')) });
     });
-    /* 捲到第一個還沒通關的關卡 */
     var first = $('lv-grid').querySelector('.lv-card:not(.cleared):not([disabled])');
     if (first) setTimeout(function () { first.scrollIntoView({ block: 'center' }); }, 30);
+  }
+
+  /* ---------- 每日挑戰（五個難度各一題） ---------- */
+  function renderDaily() {
+    var d = todayInfo();
+    var html = '<div class="page daily"><h1 class="page-title">' + esc(t('title.daily')) + '</h1><p class="room-tip">' + esc(t('daily.intro', { d: d.today })) + '</p><div class="daily-grid">';
+    for (var k = 0; k < Core.TIERS; k++) {
+      var info = Levels.dailyInfo(d.today, k);
+      var done = Store.dailyDone(d.today, k);
+      var streak = Store.liveStreak(d.today, d.yesterday, k);
+      html += '<button type="button" class="daily-tier t' + k + (done ? ' done' : '') + '" data-tier="' + k + '">' +
+        '<span class="tier-badge t' + k + '">' + esc(t('tier.' + k)) + '</span>' +
+        '<span class="dt-cs">' + K.csIcon(info.spec.cs, 'dt-svg') + '</span>' +
+        '<span class="dt-text"><b>' + esc(t('cs.' + info.spec.cs)) + '</b><small>' + esc(t('spec.n', { n: info.spec.n }) + '・' + (info.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</small></span>' +
+        '<span class="dt-state">' + (done ? '<i class="ok">' + K.icon('check') + esc(done.won ? t('daily.doneN', { n: done.steps }) : t('daily.gaveUp')) + '</i>' : '<i>' + esc(t('home.dailyGo')) + '</i>') +
+        '<i class="streak">' + K.icon('flame') + streak + '</i></span></button>';
+    }
+    $('scr-daily').innerHTML = html + '</div><p class="note">' + esc(t('daily.noHint')) + '</p></div>';
+    $('scr-daily').querySelectorAll('[data-tier]').forEach(function (b) { b.onclick = function () { root.Solo.start({ mode: 'daily', tier: Number(b.getAttribute('data-tier')) }); }; });
   }
 
   /* ---------- 統計 ---------- */
   function renderStats() {
     var s = Store.get('stats');
-    var daily = Store.get('daily');
     var tabs = [{ value: 'all', label: t('stats.all') }, { value: 'digits', label: t('cs.digits') }, { value: 'letters', label: t('cs.letters') }, { value: 'gems', label: t('cs.gems') }, { value: 'pack', label: t('stats.pack') }, { value: 'mix', label: t('cs.mix') }];
     var src = statsTab === 'all' ? s : (s.byKind[statsTab] || { games: 0, wins: 0, sumGuess: 0, fastest: 0, dist: {} });
     var avg = src.wins ? (src.sumGuess / src.wins).toFixed(1) : '—';
@@ -258,16 +269,16 @@
       var v = dist[b] || 0;
       bars += '<div class="bar-row"><span class="bar-k">' + (b === 13 ? '13+' : b) + '</span><span class="bar"><i style="width:' + (maxV ? Math.max(v ? 4 : 0, v * 100 / maxV) : 0) + '%"></i></span><span class="bar-v">' + v + '</span></div>';
     }
-    var tierRows = [0, 1, 2, 3].map(function (x) {
+    var tierRows = [0, 1, 2, 3, 4].map(function (x) {
       var r = s.byTier[x] || { games: 0, wins: 0, best: 0 };
-      var p = Store.tierProgress(x);
-      return '<tr><th scope="row">' + esc(t('tier.' + x)) + '</th><td>' + r.games + '</td><td>' + r.wins + '</td><td>' + (r.best || '—') + '</td><td>' + p.cleared + '/100</td><td>' + p.stars + '</td></tr>';
+      var p = Store.tierProgress(0, x * 10 + 1, x * 10 + 10);
+      return '<tr><th scope="row">' + esc(t('tier.' + x)) + '</th><td>' + r.games + '</td><td>' + r.wins + '</td><td>' + (r.best || '—') + '</td><td>' + p.cleared + '/10</td><td>' + p.stars + '</td></tr>';
     }).join('');
     $('scr-stats').innerHTML = '<div class="page stats"><h1 class="page-title">' + esc(t('title.stats')) + '</h1>' +
       K.segHtml('st-tab', tabs, statsTab, t('title.stats')) +
       '<div class="stat-grid">' +
       stat('chart', t('stats.games'), src.games) + stat('trophy', t('stats.rate'), rate) + stat('key', t('stats.avg'), avg) + stat('timer', t('stats.fastest'), src.fastest || '—') +
-      (statsTab === 'all' ? stat('flame', t('stats.streak'), daily.streak || 0) + stat('star', t('stats.bestStreak'), daily.best || 0) : '') +
+      (statsTab === 'all' ? stat('star', t('stats.bestStreak'), Store.bestStreak()) : '') +
       '</div><section class="panel"><h2 class="box-title">' + K.icon('chart') + esc(t('stats.dist')) + '</h2><div class="bars" role="img" aria-label="' + esc(t('stats.distAria')) + '">' + bars + '</div></section>' +
       (statsTab === 'all' ? '<section class="panel"><h2 class="box-title">' + K.icon('map') + esc(t('stats.byTier')) + '</h2><div class="table-wrap scroll"><table class="tbl"><thead><tr><th></th><th>' + esc(t('stats.games')) + '</th><th>' + esc(t('stats.wins')) + '</th><th>' + esc(t('stats.fastest')) + '</th><th>' + esc(t('stats.levels')) + '</th><th>' + esc(t('stats.stars')) + '</th></tr></thead><tbody>' + tierRows + '</tbody></table></div></section>' : '') +
       '<p class="note">' + esc(t('stats.note')) + '</p></div>';
@@ -290,11 +301,11 @@
       sec('enter', 'help.inputT', '<ul class="tips"><li>' + esc(t('help.in1')) + '</li><li>' + esc(t('help.in2')) + '</li><li>' + esc(t('help.in3')) + '</li><li>' + esc(t('help.in4')) + '</li><li>' + esc(t('help.in5')) + '</li></ul>') +
       sec('pencil', 'help.notesT', '<p>' + esc(t('help.notes')) + '</p>') +
       sec('question', 'help.hintT', '<p>' + esc(t('help.hint')) + '</p>') +
-      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m2')) + '</li><li>' + esc(t('help.m3')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li></ul>') +
+      sec('map', 'help.modesT', '<ul class="tips"><li>' + esc(t('help.m1')) + '</li><li>' + esc(t('help.m4')) + '</li><li>' + esc(t('help.m5')) + '</li><li>' + esc(t('help.tiers')) + '</li></ul>') +
       sec('users', 'help.onlineT', '<ul class="tips"><li>' + esc(t('help.o1')) + '</li><li>' + esc(t('help.o2')) + '</li><li>' + esc(t('help.o3')) + '</li></ul>') +
       '<div class="page-actions"><button type="button" class="btn primary big" id="help-go">' + K.icon('play') + '<span>' + esc(t('help.go')) + '</span></button></div></div>';
     $('scr-help').innerHTML = html;
-    $('help-go').onclick = function () { openSetup('guess'); };
+    $('help-go').onclick = function () { openSetup(); };
   }
   function sec(ico, title, body) { return '<section class="panel help-sec"><h2 class="box-title">' + K.icon(ico) + esc(t(title)) + '</h2>' + body + '</section>'; }
 
@@ -376,7 +387,7 @@
     goBack();
   }
 
-  var RENDER = { home: renderHome, solo: renderSolo, setup: renderSetup, levels: renderLevels, stats: renderStats, help: renderHelp,
+  var RENDER = { home: renderHome, solo: renderSolo, setup: renderSetup, levels: renderLevels, daily: renderDaily, stats: renderStats, help: renderHelp,
     lobby: function () { root.OnlineUI.renderLobby(); }, room: function () { root.OnlineUI.renderRoom(); } };
 
   function boot() {
@@ -386,7 +397,6 @@
     root.GameView.init();
     root.Solo.init();
     root.OnlineUI.init();
-    levelTier = Store.get('lastTier') || 0;
     applySettings();
     $('btn-settings').addEventListener('click', openSettings);
     $('btn-lang').addEventListener('click', openLangMenu);

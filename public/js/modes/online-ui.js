@@ -46,7 +46,7 @@
     if (!Net.enabled) return '<div class="net-status bad">' + K.icon('cross') + '<span>' + esc(t('net.disabled')) + '</span></div>';
     var s = Net.status;
     if (s === 'open') return '<div class="net-status ok">' + K.icon('check') + '<span>' + esc(t('net.open')) + '</span></div>';
-    if (s === 'waking') return '<div class="net-status wake">' + root.GuessArt.svg('mascot', 5, 'wake-mascot') + '<span>' + esc(t('net.waking', { n: Net.statusN || 0 })) + '</span></div>';
+    if (s === 'waking') return '<div class="net-status wake">' + root.GuessArt.svg('mascot', 5, 'wake-mascot') + '<span>' + esc(t('net.waking', { n: '\u0001' })).replace('\u0001', K.clockHtml('since', Net.wakeT0 || Date.now())) + '</span></div>';
     if (s === 'failed') return '<div class="net-status bad">' + K.icon('cross') + '<span>' + esc(t('net.failed')) + '</span><button type="button" class="btn small" id="net-retry">' + esc(t('net.retry')) + '</button></div>';
     return '<div class="net-status wake">' + K.icon('timer') + '<span>' + esc(t('net.' + (s === 'retrying' ? 'retrying' : 'connecting'), { n: Net.statusN || 0 })) + '</span></div>';
   }
@@ -69,8 +69,8 @@
     var full = r.players >= r.cap;
     var busy = r.status !== 'waiting';
     return '<li class="room-row">' +
-      '<span class="rr-cs">' + K.csIcon(r.cs, 'rr-svg') + '</span>' +
-      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(t('cs.' + r.cs)) + '・' + r.n + (r.rep ? '・' + esc(t('spec.rep')) : '') + '</small></span>' +
+      '<span class="rr-cs">' + (r.cs === 'random' ? K.icon('shuffle', 'rr-svg') : K.csIcon(r.cs, 'rr-svg')) + '</span>' +
+      '<span class="rr-main"><b>' + esc(r.hostName || '—') + '</b><small>' + esc(t('mode.' + r.mode + 'Online')) + '・' + esc(t('tier.' + r.tier)) + '・' + esc(t('cs.' + r.cs)) + '</small></span>' +
       '<span class="rr-meta"><i>' + K.icon('users') + r.players + '/' + r.cap + '</i><i>' + K.icon('eye') + r.spectators + '</i><i class="st st-' + r.status + '">' + esc(t('rs.' + r.status)) + '</i></span>' +
       '<span class="rr-act">' +
       '<button type="button" class="btn small primary" data-join="' + esc(r.id) + '"' + (full || busy ? ' disabled' : '') + '>' + esc(t('lobby.join')) + '</button>' +
@@ -119,36 +119,35 @@
 
   /* ---------- 建立房間 ---------- */
   function csMenuItems() {
-    var list = [];
+    var list = [{ value: 'random', label: t('cs.random'), icon: K.icon('shuffle', 'menu-ico'), group: t('csg.random') }];
     ['digits', 'letters', 'gems'].forEach(function (c) { list.push({ value: c, label: t('cs.' + c), icon: K.csIcon(c, 'menu-ico'), group: t('csg.basic') }); });
     Core.CUTE_PACKS.forEach(function (p) { list.push({ value: 'pack-' + p, label: t('cs.pack-' + p), icon: K.csIcon('pack-' + p, 'menu-ico'), group: t('csg.cute') }); });
     Core.REAL_PACKS.forEach(function (p) { list.push({ value: 'pack-' + p, label: t('cs.pack-' + p), icon: K.csIcon('pack-' + p, 'menu-ico'), group: t('csg.real') }); });
     list.push({ value: 'mix', label: t('cs.mix'), icon: K.csIcon('mix', 'menu-ico'), group: t('csg.mix') });
     return list;
   }
+  function csIco(cs) { return cs === 'random' ? K.icon('shuffle', 'menu-ico') : K.csIcon(cs, 'menu-ico'); }
+  function tierSeg(id, v) { var it = []; for (var x = 0; x < Core.TIERS; x++) it.push({ value: String(x), label: t('tier.' + x) }); return K.segHtml(id, it, String(v), t('setup.tier')); }
   function openCreate() {
     saveName();
-    var st = { mode: 'race', cs: 'digits', n: 10, rep: false };
+    var st = { mode: 'race', tier: 2, cs: 'digits' };
     var body = doc.createElement('div');
     body.className = 'form create-form';
     function draw() {
-      var c = Core.charset(st.cs);
       body.innerHTML = '<div class="field"><span class="f-label">' + esc(t('create.mode')) + '</span>' + K.segHtml('cr-mode', [{ value: 'race', label: t('mode.raceOnline'), icon: K.icon('flag') }, { value: 'duel', label: t('mode.duelOnline'), icon: K.icon('users') }], st.mode, t('create.mode')) +
         '<small class="f-help">' + esc(t('create.' + st.mode + 'Help')) + '</small></div>' +
-        '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="cr-cs" aria-haspopup="listbox" aria-expanded="false">' + K.csIcon(st.cs, 'menu-ico') + '<span>' + esc(t('cs.' + st.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
-        '<div class="field row2"><div><span class="f-label">' + esc(t('setup.n')) + '</span>' + K.stepperHtml('cr-n', st.n, t('setup.n')) + '<small class="f-help">' + esc(t('setup.nRange', { min: c.min, max: c.max })) + '</small></div>' +
-        '<div><span class="f-label">' + esc(t('setup.rep')) + '</span><div class="switch-row">' + K.switchHtml('cr-rep', st.rep, t('setup.rep')) + '<span>' + esc(st.rep ? t('setup.repOn') : t('setup.repOff')) + '</span></div></div></div>';
+        '<div class="field"><span class="f-label">' + esc(t('setup.tier')) + '</span>' + tierSeg('cr-tier', st.tier) + '</div>' +
+        '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="cr-cs" aria-haspopup="listbox" aria-expanded="false">' + csIco(st.cs) + '<span>' + esc(t('cs.' + st.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>';
       K.bindSeg(body.querySelector('#cr-mode'), function (v) { st.mode = v; draw(); });
-      K.bindStepper(body.querySelector('#cr-n'), function () { return st.n; }, function (v) { st.n = v; }, function () { return c.min; }, function () { return c.max; });
-      K.bindSwitch(body.querySelector('#cr-rep'), function (v) { st.rep = v; draw(); body.querySelector('#cr-rep').focus(); });
+      K.bindSeg(body.querySelector('#cr-tier'), function (v) { st.tier = Number(v); });
       body.querySelector('#cr-cs').addEventListener('click', function () {
-        K.menu(body.querySelector('#cr-cs'), { items: csMenuItems(), value: st.cs, wide: true, onPick: function (v) { st.cs = v; st.n = Core.clampN(v, st.n); draw(); body.querySelector('#cr-cs').focus(); } });
+        K.menu(body.querySelector('#cr-cs'), { items: csMenuItems(), value: st.cs, wide: true, onPick: function (v) { st.cs = v; draw(); body.querySelector('#cr-cs').focus(); } });
       });
     }
     draw();
     K.Modal({ title: t('lobby.create'), body: body, actions: [
       { label: t('common.cancel'), kind: 'ghost' },
-      { label: t('create.go'), kind: 'primary', icon: 'plus', onClick: function () { Net.send({ type: 'create', mode: st.mode, name: myName(), avatar: avatarSel, settings: { cs: st.cs, n: st.n, rep: st.rep } }); } }] });
+      { label: t('create.go'), kind: 'primary', icon: 'plus', onClick: function () { Net.send({ type: 'create', mode: st.mode, name: myName(), avatar: avatarSel, settings: { tier: st.tier, cs: st.cs } }); } }] });
   }
 
   /* ---------- 房間 ---------- */
@@ -160,41 +159,35 @@
       if (!s) {
         var act = '';
         if (you.role === 'spectator' && r.status !== 'playing' && r.status !== 'setup') act += '<button type="button" class="btn small" data-sit="1">' + K.icon('user') + esc(t('room.sit')) + '</button>';
-        if (host && r.mode === 'race' && r.status !== 'playing') act += '<button type="button" class="btn small ghost" data-addai="' + i + '"' + (r.settings.aiOK ? '' : ' disabled title="' + esc(t('err.ai_space')) + '"') + ' aria-haspopup="listbox" aria-expanded="false">' + K.icon('robot') + esc(t('room.addAI')) + '</button>';
         return '<li class="seat empty"><span class="seat-av">' + K.icon('user') + '</span><span class="seat-name">' + esc(t('room.empty')) + '</span><span class="seat-act">' + act + '</span></li>';
       }
-      var isMe = !s.ai && s.id === you.id;
+      var isMe = s.id === you.id;
       var badges = '';
-      if (!s.ai && s.id === r.hostId) badges += '<i class="b-host" title="' + esc(t('room.host')) + '">' + K.icon('crown') + '</i>';
-      if (s.ai) badges += '<i class="b-ai">' + K.icon('robot') + esc(t('tier.' + s.level)) + '</i>';
-      else if (r.status !== 'playing' && r.status !== 'setup') badges += s.ready ? '<i class="b-ready">' + K.icon('check') + esc(t('room.ready')) + '</i>' : '<i class="b-wait">' + esc(t('room.notReady')) + '</i>';
-      if (!s.ai && !s.connected) badges += '<i class="b-dc">' + K.icon('timer') + esc(t('room.dc')) + '</i>';
+      if (s.id === r.hostId) badges += '<i class="b-host" title="' + esc(t('room.host')) + '">' + K.icon('crown') + '</i>';
+      if (r.status !== 'playing' && r.status !== 'setup') badges += s.ready ? '<i class="b-ready">' + K.icon('check') + esc(t('room.ready')) + '</i>' : '<i class="b-wait">' + esc(t('room.notReady')) + '</i>';
+      if (!s.connected) badges += '<i class="b-dc">' + K.icon('timer') + esc(t('room.dc')) + '</i>';
       var act2 = '';
-      if (host && !isMe && r.status !== 'playing' && r.status !== 'setup') {
-        if (s.ai) act2 = '<button type="button" class="icon-btn small" data-rmai="' + i + '" aria-label="' + esc(t('room.removeAI')) + '" title="' + esc(t('room.removeAI')) + '">' + K.icon('close') + '</button>';
-        else act2 = '<button type="button" class="icon-btn small" data-kick="' + esc(s.id) + '" aria-label="' + esc(t('room.kick', { n: s.name })) + '" title="' + esc(t('room.kick', { n: s.name })) + '">' + K.icon('kick') + '</button>';
-      }
-      return '<li class="seat' + (isMe ? ' me' : '') + (s.ready || s.ai ? ' ready' : '') + '"><span class="seat-av">' + root.GuessArt.svg('avatars', s.avatar || 0, 'av-svg') + '</span>' +
+      if (host && !isMe && r.status !== 'playing' && r.status !== 'setup') act2 = '<button type="button" class="icon-btn small" data-kick="' + esc(s.id) + '" aria-label="' + esc(t('room.kick', { n: s.name })) + '" title="' + esc(t('room.kick', { n: s.name })) + '">' + K.icon('kick') + '</button>';
+      return '<li class="seat' + (isMe ? ' me' : '') + (s.ready ? ' ready' : '') + '"><span class="seat-av">' + root.GuessArt.svg('avatars', s.avatar || 0, 'av-svg') + '</span>' +
         '<span class="seat-name" title="' + esc(s.name) + '">' + esc(s.name) + (isMe ? ' <small>(' + esc(t('room.you')) + ')</small>' : '') + '</span><span class="seat-badges">' + badges + '</span><span class="seat-act">' + act2 + '</span></li>';
     }).join('');
   }
   function settingsHtml() {
     var r = room, s = r.settings, host = r.you.host && r.status !== 'playing' && r.status !== 'setup';
-    var c = Core.charset(s.cs);
-    var lim = s.limit || s.autoLimit;
     if (!host) {
-      return '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.cs')) + '</dt><dd>' + esc(t('cs.' + s.cs)) + '</dd>' +
-        '<dt>' + esc(t('setup.n')) + '</dt><dd>' + s.n + '・' + esc(s.rep ? t('spec.rep') : t('spec.norep')) + '</dd><dt>' + esc(t('sum.limit')) + '</dt><dd>' + esc(t('sum.limitN', { n: lim })) + (s.limit ? '' : ' (' + esc(t('room.auto')) + ')') + '</dd>' +
-        '<dt>' + esc(t('room.turnSec')) + '</dt><dd>' + esc(s.turnSec ? t('room.secN', { n: s.turnSec }) : t('room.noLimit')) + '</dd>' + (r.mode === 'race' ? '<dt>' + esc(t('room.cap')) + '</dt><dd>' + s.cap + '</dd>' : '') + '</dl>';
+      return '<dl class="sum-list"><dt>' + esc(t('create.mode')) + '</dt><dd>' + esc(t('mode.' + r.mode + 'Online')) + '</dd><dt>' + esc(t('setup.tier')) + '</dt><dd>' + esc(t('tier.' + s.tier)) + '</dd>' +
+        '<dt>' + esc(t('setup.cs')) + '</dt><dd>' + esc(t('cs.' + s.cs)) + '</dd>' +
+        (r.mode === 'race' ? '<dt>' + esc(t('room.minutes')) + '</dt><dd>' + esc(t('room.minN', { n: s.minutes })) + '</dd><dt>' + esc(t('room.cap')) + '</dt><dd>' + s.cap + '</dd>'
+          : '<dt>' + esc(t('room.turnSec')) + '</dt><dd>' + esc(t('room.secN', { n: s.turnSec })) + '</dd><dt>' + esc(t('room.rounds')) + '</dt><dd>' + esc(t('room.roundsN', { n: 15 })) + '</dd>') + '</dl>';
     }
     return '<div class="form compact">' +
-      '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="rs-cs" aria-haspopup="listbox" aria-expanded="false">' + K.csIcon(s.cs, 'menu-ico') + '<span>' + esc(t('cs.' + s.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
-      '<div class="field row2"><div><span class="f-label">' + esc(t('setup.n')) + '</span>' + K.stepperHtml('rs-n', s.n, t('setup.n')) + '</div>' +
-      '<div><span class="f-label">' + esc(t('setup.rep')) + '</span><div class="switch-row">' + K.switchHtml('rs-rep', s.rep, t('setup.rep')) + '</div></div></div>' +
-      '<div class="field"><span class="f-label">' + esc(t('sum.limit')) + '</span><div class="switch-row">' + K.switchHtml('rs-auto', !s.limit, t('room.auto')) + '<span>' + esc(t('room.auto')) + '</span>' + (s.limit ? K.stepperHtml('rs-lim', s.limit, t('sum.limit')) : '<b class="auto-lim">' + esc(t('sum.limitN', { n: s.autoLimit })) + '</b>') + '</div></div>' +
-      '<div class="field"><span class="f-label">' + esc(t('room.turnSec')) + '</span>' + K.segHtml('rs-turn', [0, 5, 10, 15].map(function (v) { return { value: String(v), label: v ? t('room.secN', { n: v }) : t('room.noLimit') }; }), String(s.turnSec), t('room.turnSec')) + '</div>' +
-      (r.mode === 'race' ? '<div class="field"><span class="f-label">' + esc(t('room.cap')) + '</span>' + K.stepperHtml('rs-cap', s.cap, t('room.cap')) + '</div>' : '') +
-      (!s.aiOK && r.mode === 'race' ? '<p class="note warn">' + esc(t('err.ai_space')) + '</p>' : '') + '</div>';
+      '<div class="field"><span class="f-label">' + esc(t('setup.tier')) + '</span>' + tierSeg('rs-tier', s.tier) + '<small class="f-help">' + esc(t('room.tierHelp')) + '</small></div>' +
+      '<div class="field"><span class="f-label">' + esc(t('setup.cs')) + '</span><button type="button" class="select-btn" id="rs-cs" aria-haspopup="listbox" aria-expanded="false">' + csIco(s.cs) + '<span>' + esc(t('cs.' + s.cs)) + '</span>' + K.icon('back', 'chev') + '</button></div>' +
+      (r.mode === 'race'
+        ? '<div class="field"><span class="f-label">' + esc(t('room.minutes')) + '</span>' + K.segHtml('rs-min', [3, 5, 10].map(function (v) { return { value: String(v), label: t('room.minN', { n: v }) }; }), String(s.minutes), t('room.minutes')) + '</div>' +
+          '<div class="field"><span class="f-label">' + esc(t('room.cap')) + '</span>' + K.stepperHtml('rs-cap', s.cap, t('room.cap')) + '</div>'
+        : '<div class="field"><span class="f-label">' + esc(t('room.turnSec')) + '</span>' + K.segHtml('rs-turn', [15, 30, 60].map(function (v) { return { value: String(v), label: t('room.secN', { n: v }) }; }), String(s.turnSec), t('room.turnSec')) +
+          '<small class="f-help">' + esc(t('room.duelHelp')) + '</small></div>') + '</div>';
   }
   function inviteUrl() {
     if (!room || !room.invite || room.invite.revoked) return '';
@@ -253,25 +246,15 @@
     var res = q('#rm-result'); if (res) res.onclick = function () { wantGame = true; showGame(); showResult(true); };
     q('#rm-leave').onclick = confirmLeave;
     $('scr-room').querySelectorAll('[data-kick]').forEach(function (b) { b.onclick = function () { Net.send({ type: 'kick', target: b.getAttribute('data-kick') }); }; });
-    $('scr-room').querySelectorAll('[data-rmai]').forEach(function (b) { b.onclick = function () { Net.send({ type: 'remove_ai', seat: Number(b.getAttribute('data-rmai')) }); }; });
-    $('scr-room').querySelectorAll('[data-addai]').forEach(function (b) {
-      b.onclick = function () {
-        if (b.disabled) return;
-        K.menu(b, { label: t('room.addAI'), value: null, items: [0, 1, 2, 3].map(function (lv) { return { value: lv, label: t('tier.' + lv), icon: K.icon('robot') }; }), onPick: function (lv) { Net.send({ type: 'add_ai', seat: Number(b.getAttribute('data-addai')), level: lv }); } });
-      };
-    });
     var cp = q('#inv-copy'); if (cp) cp.onclick = function () { copyText(inviteUrl()); };
     var nw = q('#inv-new'); if (nw) nw.onclick = function () { Net.send({ type: 'invite_new' }); };
     var rv = q('#inv-revoke'); if (rv) rv.onclick = function () { Net.send({ type: 'invite_revoke' }); };
     var s = r.settings;
     if (q('#rs-cs')) {
-      q('#rs-cs').onclick = function () { K.menu(q('#rs-cs'), { items: csMenuItems(), value: s.cs, wide: true, onPick: function (v) { Net.send({ type: 'settings', cs: v, n: Core.clampN(v, s.n) }); } }); };
-      var c = Core.charset(s.cs);
-      K.bindStepper(q('#rs-n'), function () { return s.n; }, function (v) { s.n = v; Net.send({ type: 'settings', n: v }); }, function () { return c.min; }, function () { return c.max; });
-      K.bindSwitch(q('#rs-rep'), function (v) { Net.send({ type: 'settings', rep: v }); });
-      K.bindSwitch(q('#rs-auto'), function (v) { Net.send({ type: 'settings', limit: v ? 0 : s.autoLimit }); });
-      if (q('#rs-lim')) K.bindStepper(q('#rs-lim'), function () { return s.limit; }, function (v) { s.limit = v; Net.send({ type: 'settings', limit: v }); }, function () { return 3; }, function () { return 60; });
-      K.bindSeg(q('#rs-turn'), function (v) { Net.send({ type: 'settings', turnSec: Number(v) }); });
+      q('#rs-cs').onclick = function () { K.menu(q('#rs-cs'), { items: csMenuItems(), value: s.cs, wide: true, onPick: function (v) { Net.send({ type: 'settings', cs: v }); } }); };
+      K.bindSeg(q('#rs-tier'), function (v) { Net.send({ type: 'settings', tier: Number(v) }); });
+      if (q('#rs-min')) K.bindSeg(q('#rs-min'), function (v) { Net.send({ type: 'settings', minutes: Number(v) }); });
+      if (q('#rs-turn')) K.bindSeg(q('#rs-turn'), function (v) { Net.send({ type: 'settings', turnSec: Number(v) }); });
       if (q('#rs-cap')) K.bindStepper(q('#rs-cap'), function () { return s.cap; }, function (v) { s.cap = v; Net.send({ type: 'settings', cap: v }); }, function () { return Math.max(2, r.seats.reduce(function (m, x, i) { return x ? i + 1 : m; }, 2)); }, function () { return 6; });
     }
   }
@@ -372,7 +355,12 @@
     if (key !== setupKey) {
       setupKey = key;
       var purpose = key.slice(-6) === 'secret' ? 'secret' : 'guess';
-      G.setup({ spec: spec, tier: null, purpose: purpose, onSubmit: onSubmit, greet: purpose === 'secret' ? t('say.greetSecret') : t(you.role === 'spectator' ? 'say.watching' : r.mode === 'duel' ? 'say.greetDuel' : 'say.greetOnline'), notes: you.role === 'player' });
+      G.setup({ spec: spec, tier: g.tier, purpose: purpose, onSubmit: onSubmit, greet: purpose === 'secret' ? t('say.greetSecretDefault') : t(you.role === 'spectator' ? 'say.watching' : r.mode === 'duel' ? 'say.greetDuel' : 'say.greetOnline'), notes: you.role === 'player' });
+      if (purpose === 'secret') {
+        var me = g.players[you.seat];
+        G.setInput(true);
+        if (me && me.myDefault) G.recall(me.myDefault);
+      }
     }
     var tabs = [], canInput = false, why = '', counter = '', deadline = 0, total = 1;
     if (r.mode === 'race') {
@@ -381,14 +369,13 @@
         tabs.push({ label: t('tab.mine'), icon: K.icon('user'), rows: rowsFrom(mineP && mineP.hist), mine: true, focus: true });
         canInput = r.status === 'playing' && mineP && !mineP.solved && !mineP.out;
         why = mineP && mineP.solved ? t('why.solved') : mineP && mineP.out ? t('why.out') : '';
-        counter = t('game.countOf', { n: mineP ? mineP.count : 0, max: g.limit });
-        if (mineP && mineP.deadline && canInput) { deadline = mineP.deadline; total = g.turnSec * 1000; }
+        counter = t('game.count', { n: mineP ? mineP.count : 0 });
       } else {
         g.players.forEach(function (p, i) { if (p) tabs.push({ label: playerName(i), icon: root.GuessArt.svg('avatars', (r.seats[i] && r.seats[i].avatar) || 0, 'tab-av'), rows: rowsFrom(p.hist) }); });
         why = t('why.spectator');
         counter = t('race.players', { n: g.players.filter(Boolean).length });
       }
-      if (g.finishAt && r.status === 'playing') { deadline = g.finishAt; total = 10000; }
+      if (r.status === 'playing') { deadline = g.finishAt || g.endsAt; total = g.finishAt ? 10000 : (g.endsAt - g.startedAt); }
     } else {
       var seat = you.seat;
       if (g.phase === 'setup' || r.status === 'setup') {
@@ -396,6 +383,7 @@
         canInput = you.role === 'player' && !lockedMine;
         why = lockedMine ? t('why.waitSecret') : you.role === 'spectator' ? t('why.spectator') : '';
         counter = t('game.setSecret');
+        if (g.setupEndsAt) { deadline = g.setupEndsAt; total = 60000; }
       } else {
         var other = seat >= 0 ? 1 - seat : 1;
         if (you.role === 'player') {
@@ -406,7 +394,7 @@
         }
         canInput = r.status === 'playing' && you.role === 'player' && g.turn === seat;
         why = you.role === 'spectator' ? t('why.spectator') : t('why.oppTurn', { n: playerName(g.turn) });
-        counter = t('duel.counter', { round: g.round, max: g.limit });
+        counter = t('duel.counter', { round: g.round, max: g.maxRounds });
         if (g.deadline && r.status === 'playing') { deadline = g.deadline; total = g.turnSec * 1000; }
       }
     }
@@ -420,7 +408,12 @@
   function renderGameSummary() {
     var r = room, g = r.game; if (!g) return;
     var you = r.you;
-    var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(t('cs.' + g.spec.cs)) + '・' + g.spec.n + (g.spec.rep ? '・' + esc(t('spec.rep')) : '') + '</span></div>';
+    var html = '<div class="sum-mode"><b>' + esc(t('mode.' + r.mode + 'Online')) + '</b><span>' + esc(t('room.title', { id: r.id })) + '・' + esc(t('tier.' + g.tier)) + '</span></div>' +
+      '<p class="small">' + esc(t('cs.' + g.spec.cs) + '・' + t('spec.n', { n: g.spec.n }) + '・' + (g.spec.rep ? t('spec.rep3') : t('spec.norep'))) + '</p>';
+    if (r.mode === 'race' && r.status === 'playing') {
+      var left = g.endsAt - now();
+      html += '<p class="race-clock' + (left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + K.clockHtml('until', Date.now() + left) + '<span>' + esc(t('race.left')) + '</span></p>';
+    }
     if (r.mode === 'race') {
       html += '<ul class="race-list">' + g.players.map(function (p, i) {
         if (!p) return '';
@@ -429,8 +422,8 @@
         var bar = '';
         for (var k = 0; k < 4; k++) bar += '<b class="' + (k < p.bestA ? 'a' : k < p.bestA + p.bestB ? 'b' : '') + '"></b>';
         return '<li class="' + (i === you.seat ? 'me' : '') + (i === g.winnerSeat ? ' winner' : '') + '">' + (s ? root.GuessArt.svg('avatars', s.avatar || 0, 'av-mini') : K.icon('user')) +
-          '<span class="rl-name">' + esc(playerName(i)) + (s && s.ai ? ' <small>' + esc(t('tier.' + s.level)) + '</small>' : '') + '</span>' +
-          '<span class="rl-prog" aria-label="' + esc(t('race.progAria', { n: p.count, a: p.bestA, b: p.bestB })) + '"><span class="rl-bar">' + bar + '</span><small>' + p.count + '/' + g.limit + '</small></span>' + st + '</li>';
+          '<span class="rl-name">' + esc(playerName(i)) + '</span>' +
+          '<span class="rl-prog" aria-label="' + esc(t('race.progAria', { n: p.count, a: p.bestA, b: p.bestB })) + '"><span class="rl-bar">' + bar + '</span><small>' + esc(t('race.countN', { n: p.count })) + '</small></span>' + st + '</li>';
       }).join('') + '</ul>';
       if (g.finishAt && r.status === 'playing') html += '<p class="note warn">' + K.icon('timer') + esc(t('race.finishing', { n: playerName(g.winnerSeat) })) + '</p>';
     } else {
@@ -473,23 +466,24 @@
       var myRow = res.ranking.filter(function (x) { return x.seat === you.seat; })[0];
       o.ranking = res.ranking.map(function (x) {
         var s = r.seats[x.seat];
-        return { rank: x.rank, name: x.name, ai: x.ai, avatar: s ? s.avatar : 0, me: x.seat === you.seat && you.role === 'player', info: x.solved ? t('race.solvedN', { n: x.solvedN }) : x.out && x.out !== 'limit' ? t('race.out.' + x.out) : t('race.best', { a: x.bestA, b: x.bestB }) };
+        return { rank: x.rank, name: x.name, avatar: s ? s.avatar : 0, me: x.seat === you.seat && you.role === 'player', info: x.solved ? t('race.solvedN', { n: x.solvedN }) : x.out ? t('race.out.' + x.out) : t('race.best', { a: x.bestA, b: x.bestB }) };
       });
       if (you.role === 'player' && myRow) {
         o.kind = myRow.rank === 1 && myRow.solved ? 'win' : 'rank';
-        o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : t('res.lastStanding')) : t('res.rank', { n: myRow.rank });
+        o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : res.timeUp ? t('res.timeUpWin') : t('res.lastStanding')) : t('res.rank', { n: myRow.rank });
         o.mood = myRow.rank === 1 ? 'happy' : myRow.solved ? 'idle' : 'shake';
         o.lines.push(myRow.solved ? t('res.guesses', { n: myRow.solvedN }) : t('res.notSolved'));
         root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: !!myRow.solved, guesses: myRow.solved ? myRow.solvedN : 0 });
       } else {
         o.kind = 'rank'; o.title = t('res.raceOver'); o.mood = 'idle';
       }
+      if (res.timeUp) o.sub = t('res.timeUp');
       o.answers.push({ label: t('res.answer'), code: res.answer });
     } else {
       var w = res.winnerSeat;
       if (you.role === 'player') {
         o.kind = w < 0 ? 'draw' : w === you.seat ? 'win' : 'lose';
-        o.title = w < 0 ? (res.reason === 'limit' ? t('res.drawLimit') : t('res.draw')) : w === you.seat ? t('res.win') : t('res.oppWin', { n: res.names[w] || '' });
+        o.title = w < 0 ? (res.reason === 'rounds' ? t('res.drawRounds') : t('res.draw')) : w === you.seat ? t('res.win') : t('res.oppWin', { n: res.names[w] || '' });
         o.mood = o.kind === 'win' ? 'happy' : o.kind === 'draw' ? 'surprise' : 'shake';
         root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: o.kind === 'win', guesses: res.counts[you.seat] || 0 });
       } else {
@@ -497,7 +491,7 @@
         o.title = w < 0 ? t('res.draw') : t('res.someoneWin', { n: res.names[w] || '' });
         o.mood = 'idle';
       }
-      if (res.reason && res.reason !== 'solved' && res.reason !== 'limit') o.sub = t('res.reason.' + res.reason);
+      if (res.reason && res.reason !== 'solved') o.sub = t('res.reason.' + res.reason);
       res.secrets.forEach(function (sec, i) { if (sec) o.answers.push({ label: t('res.secretOf', { n: res.names[i] || '' }), code: sec }); });
       o.lines.push(res.names.map(function (n, i) { return t('res.countOf', { n: n || '', c: res.counts[i] }); }).join('・'));
     }

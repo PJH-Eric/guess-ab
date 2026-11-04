@@ -35,7 +35,7 @@
     if (o.streak != null) html += '<p class="res-streak">' + K.icon('flame') + '<span>' + K.esc(t('res.streak', { n: o.streak })) + '</span></p>';
     if (o.ranking && o.ranking.length) {
       html += '<ol class="res-rank scroll">' + o.ranking.map(function (r) {
-        return '<li class="' + (r.me ? 'me' : '') + '"><b class="rk">' + r.rank + '</b>' + (r.avatar != null ? root.GuessArt.svg(r.ai ? 'icons' : 'avatars', r.ai ? 34 : r.avatar, 'rk-av') : '') +
+        return '<li class="' + (r.me ? 'me' : '') + '"><b class="rk">' + r.rank + '</b>' + (r.avatar != null ? root.GuessArt.svg('avatars', r.avatar, 'rk-av') : '') +
           '<span class="rk-name">' + K.esc(r.name) + '</span><span class="rk-info">' + K.esc(r.info) + '</span></li>';
       }).join('') + '</ol>';
     }
