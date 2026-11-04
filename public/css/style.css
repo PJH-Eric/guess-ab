@@ -341,14 +341,14 @@ svg.av-mini { width: 28px; height: 28px; }
 .safe[data-tier="4"] { background: radial-gradient(circle at 20% 30%, rgba(255, 217, 112, .35) 0 1.5px, transparent 2px), radial-gradient(circle at 70% 18%, rgba(255, 255, 255, .5) 0 1px, transparent 1.6px), linear-gradient(160deg, #5B4A9E 0%, #3A2F73 55%, #231C4E 100%); }
 .safe[data-tier="4"] .counter { background: var(--gold); }
 .safe[data-purpose="secret"] { background: linear-gradient(160deg, #FFE7A8 0%, var(--gold) 50%, #EDAE2E 100%); }
-.safe-top { display: flex; align-items: center; gap: 10px; min-height: 64px; position: relative; z-index: 1; }
+.safe-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 64px; position: relative; z-index: 1; }
 .mascot { width: 64px; height: 64px; flex: none; }
 .mascot .mascot-svg { width: 100%; height: 100%; }
 .mascot.bounce { animation: bounce .45s; }
 @keyframes bounce { 30% { transform: translateY(-8px) scale(1.05); } 60% { transform: translateY(0) scale(.97); } }
-.bubble { flex: 1; min-width: 0; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 16px; padding: 7px 12px; font-weight: 800; font-size: .95rem; position: relative; overflow-wrap: anywhere; }
+.bubble { flex: 1 1 140px; min-width: 0; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 16px; padding: 7px 12px; font-weight: 800; font-size: .95rem; position: relative; overflow-wrap: break-word; }
 .bubble::before { content: ""; position: absolute; left: -9px; top: 50%; width: 14px; height: 14px; background: var(--paper); border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: translateY(-50%) rotate(45deg); }
-.counter { flex: none; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 12px; font-weight: 900; font-size: .9rem; white-space: nowrap; }
+.counter { flex: none; margin-left: auto; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 12px; font-weight: 900; font-size: .9rem; white-space: nowrap; }
 .timer-row { display: flex; align-items: center; gap: 8px; margin: 8px 4px 0; position: relative; z-index: 1; }
 .timer-row[hidden] { display: none; }
 .timer { flex: 1 1 auto; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, .55); border: 2px solid var(--ink); overflow: hidden; }
@@ -819,4 +819,20 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
   .res-title { font-size: 1.15rem; }
   .res-stars i, .res-stars i svg.ico { width: 34px; height: 34px; }
   .res-ranks { max-height: 150px; }
+}
+
+/* 超窄螢幕（折疊機外螢幕約 280px）：清除／退格只留圖示，底部分頁縮小 */
+@media (max-width: 330px) {
+  .pad-actions { grid-template-columns: auto auto 1fr; gap: 6px; }
+  #k-clear span[data-i18n], #k-back span[data-i18n] { display: none; }
+  #k-clear, #k-back { padding-left: 12px; padding-right: 12px; }
+  #k-submit { min-width: 0; padding-left: 8px; padding-right: 8px; }
+  .g-tabs { gap: 4px; }
+  .g-tabs button { gap: 3px; font-size: .85rem; padding: 0 4px; min-width: 0; }
+  .g-tabs button svg.ico { width: 16px; height: 16px; }
+}
+
+/* 超寬螢幕（2K 以上）：整體寬度上限，置中，不要拉到兩側 */
+@media (min-width: 1900px) {
+  #main { max-width: 1760px; margin-left: auto; margin-right: auto; width: 100%; }
 }

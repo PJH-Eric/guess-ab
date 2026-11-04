@@ -10,7 +10,7 @@ const round = process.argv[2] || 'r';
 const out = path.join(__dirname, '..', 'tmp', 'audit', round);
 fs.mkdirSync(out, { recursive: true });
 const BASE = process.env.BASE || 'http://localhost:3100/';
-const VIEWS = [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], ['tabP', 820, 1180], ['tabL', 1180, 820], ['desk', 1440, 900]];
+const VIEWS = process.env.VIEWS_JSON ? JSON.parse(process.env.VIEWS_JSON) : [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], ['tabP', 820, 1180], ['tabL', 1180, 820], ['desk', 1440, 900]];
 const LANGS = (process.env.LANGS || 'zh-Hant,en').split(',');
 
 /* 線上場景要第二位玩家：另開一個瀏覽器分頁，用房號加入並按準備 */

@@ -126,11 +126,16 @@
     var W = box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - 6;
     var H = box.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0) - 4;
     if (W <= 0) return;
-    var best = { s: 0, cols: Math.min(n, 5) };
+    /* 鍵的上限：一般 92px，空間很大時放大到 112px */
+    var cap = Math.min(112, Math.max(92, Math.floor(H / 4)));
+    var aspect = H > 60 ? W / H : 4;
+    var best = { s: 0, cols: Math.min(n, 5), fit: Infinity };
     for (var cols = 1; cols <= n; cols++) {
       var rows = Math.ceil(n / cols);
-      var s = Math.min(92, (W - gap * (cols - 1)) / cols, H > 60 ? (H - gap * (rows - 1)) / rows : 92);
-      if (s > best.s + 0.5) best = { s: s, cols: cols };
+      var s = Math.min(cap, (W - gap * (cols - 1)) / cols, H > 60 ? (H - gap * (rows - 1)) / rows : cap);
+      var fit = Math.abs(Math.log((cols / rows) / aspect));   // 排列形狀越接近按鍵區形狀越好
+      /* 鍵越大越好；一樣大（例如都到上限）時選形狀最接近的，避免排成一長條 */
+      if (s > best.s + 0.5 || (s >= best.s - 0.5 && fit < best.fit)) best = { s: s, cols: cols, fit: fit };
     }
     /* 空間太小時改成可捲動：鍵至少 40px */
     var size = Math.floor(best.s);
