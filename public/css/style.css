@@ -338,6 +338,8 @@ svg.av-mini { width: 28px; height: 28px; }
 .safe[data-tier="2"] { background: linear-gradient(160deg, #CFE6FF 0%, #9CC9F5 50%, #6EA9E3 100%); }
 .safe[data-tier="3"] { background: linear-gradient(160deg, #B9A6E8 0%, #8F78D1 50%, #6A55AE 100%); }
 .safe[data-tier="3"] .counter { background: var(--gold); }
+.safe[data-tier="4"] { background: radial-gradient(circle at 20% 30%, rgba(255, 217, 112, .35) 0 1.5px, transparent 2px), radial-gradient(circle at 70% 18%, rgba(255, 255, 255, .5) 0 1px, transparent 1.6px), linear-gradient(160deg, #5B4A9E 0%, #3A2F73 55%, #231C4E 100%); }
+.safe[data-tier="4"] .counter { background: var(--gold); }
 .safe[data-purpose="secret"] { background: linear-gradient(160deg, #FFE7A8 0%, var(--gold) 50%, #EDAE2E 100%); }
 .safe-top { display: flex; align-items: center; gap: 10px; min-height: 64px; position: relative; z-index: 1; }
 .mascot { width: 64px; height: 64px; flex: none; }
@@ -413,6 +415,10 @@ svg.av-mini { width: 28px; height: 28px; }
 .pad-actions { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
 .pad-actions .btn { padding: 6px 8px; }
 #app[data-input="wheel"] .keys { display: none; }
+/* 只用撥輪：保險箱撐大，按鈕區縮到剛好放得下操作鈕 */
+#app[data-input="wheel"] .g-center { justify-content: center; }
+#app[data-input="wheel"] .g-center .pad { flex: none; min-height: 0; }
+#app[data-input="wheel"] .wheel-cur { max-width: min(150px, 18vh); }
 #app[data-input="keypad"] .wheel-arrow { visibility: hidden; }
 
 .g-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
@@ -711,11 +717,12 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 }
 /* ===== v0.8：五段難度徽章、闖關分段、每日挑戰、競速倒數 ===== */
 .tier-badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 12px; border-radius: 999px; border: 2px solid var(--ink); font-weight: 900; font-size: .85rem; line-height: 1.5; white-space: nowrap; background: var(--tc); color: var(--tk, var(--ink)); }
-.t0 { --tc: #CFF3E6; --tl: #F0FCF7; }
-.t1 { --tc: #CFE7FF; --tl: #F1F8FF; }
-.t2 { --tc: #FFE7A8; --tl: #FFF9E8; }
-.t3 { --tc: #FFC2B3; --tl: #FFF2EE; }
-.t4 { --tc: #7B5CC9; --tk: #fff; --tl: #F4EFFF; }
+/* 難度色與保險箱顏色一致：幼幼粉、簡單薄荷、普通藍、困難紫、神話夜空 */
+.t0 { --tc: #FFC7D4; --tl: #FFF1F4; }
+.t1 { --tc: #BDEEDD; --tl: #F0FCF7; }
+.t2 { --tc: #C3DDFA; --tl: #F1F7FF; }
+.t3 { --tc: #CDBEF0; --tl: #F5F1FF; }
+.t4 { --tc: #2F2763; --tk: #FFD970; --tl: #EEEAF8; }
 .lv-scroll { flex: 1 1 auto; min-height: 0; padding: 2px 10px 16px 2px; }
 .lv-block { margin-bottom: 18px; }
 .lv-block-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 8px; font-size: 1rem; }
@@ -746,11 +753,11 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .seg[id$="-tier"] { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .seg[id$="-tier"] .seg-btn { min-width: 0; padding: 4px 1px; font-size: min(.92rem, 3.2vw); }
 .seg[id$="-tier"] .seg-btn span { overflow: hidden; text-overflow: ellipsis; }
-.seg[id$="-tier"] .seg-btn[data-v="0"][aria-checked="true"] { background: #CFF3E6; }
-.seg[id$="-tier"] .seg-btn[data-v="1"][aria-checked="true"] { background: #CFE7FF; }
-.seg[id$="-tier"] .seg-btn[data-v="2"][aria-checked="true"] { background: #FFE7A8; }
-.seg[id$="-tier"] .seg-btn[data-v="3"][aria-checked="true"] { background: #FFC2B3; }
-.seg[id$="-tier"] .seg-btn[data-v="4"][aria-checked="true"] { background: #7B5CC9; color: #fff; }
+.seg[id$="-tier"] .seg-btn[data-v="0"][aria-checked="true"] { background: #FFC7D4; }
+.seg[id$="-tier"] .seg-btn[data-v="1"][aria-checked="true"] { background: #BDEEDD; }
+.seg[id$="-tier"] .seg-btn[data-v="2"][aria-checked="true"] { background: #C3DDFA; }
+.seg[id$="-tier"] .seg-btn[data-v="3"][aria-checked="true"] { background: #CDBEF0; }
+.seg[id$="-tier"] .seg-btn[data-v="4"][aria-checked="true"] { background: #2F2763; color: #FFD970; }
 
 /* 結算視窗開著時，提示移到頂端，不要蓋住結算按鈕 */
 body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom: auto; flex-direction: column; }
