@@ -462,6 +462,7 @@
 "say.greetSecretDefault": "已经帮你填好一组默认密码，直接按「锁上」或改成你想要的都可以。",
 "res.vsPar": "三星标准 {p} 次，你用了 {n} 次",
 "res.drawRounds": "15 回合结束，最好成绩一样，平手！",
+"res.oppWinRounds": "{n} 的最好成绩比较好",
 "res.reason.rounds": "15 回合都没人猜中，比最好的 A、B",
 "res.timeUp": "时间到！依最好的 A、B 与步数排名",
 "res.timeUpWin": "时间到！你最接近答案，第一名",

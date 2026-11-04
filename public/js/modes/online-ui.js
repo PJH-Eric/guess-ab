@@ -350,7 +350,7 @@
     var r = room, g = r.game;
     if (!g) return;
     var you = r.you;
-    var key = g.no + ':' + (r.mode === 'duel' ? (g.phase === 'setup' && you.role === 'player' && !(g.players[you.seat] && g.players[you.seat].locked) ? 'secret' : 'play') : 'play');
+    var key = r.id + ':' + g.no + ':' + (r.mode === 'duel' ? (g.phase === 'setup' && you.role === 'player' && !(g.players[you.seat] && g.players[you.seat].locked) ? 'secret' : 'play') : 'play');
     var spec = { cs: g.spec.cs, n: g.spec.n, rep: g.spec.rep, pool: g.spec.pool, seed: 'room' };
     if (key !== setupKey) {
       setupKey = key;
@@ -458,8 +458,8 @@
 
   function showResult(force) {
     var r = room, g = r.game; if (!g || !g.result) return;
-    if (!force && shownResult === g.no) return;
-    shownResult = g.no;
+    if (!force && shownResult === r.id + ':' + g.no) return;   // 用「房號:局號」，換房間後第 1 局也會顯示
+    shownResult = r.id + ':' + g.no;
     var you = r.you, res = g.result;
     var spec = g.spec;
     var o = { spec: spec, answers: [], lines: [], again: {}, room: {}, home: {} };
@@ -485,7 +485,7 @@
       var w = res.winnerSeat;
       if (you.role === 'player') {
         o.kind = w < 0 ? 'draw' : w === you.seat ? 'win' : 'lose';
-        o.title = w < 0 ? (res.reason === 'rounds' ? t('res.drawRounds') : t('res.draw')) : w === you.seat ? t('res.win') : t('res.oppWin', { n: res.names[w] || '' });
+        o.title = w < 0 ? (res.reason === 'rounds' ? t('res.drawRounds') : t('res.draw')) : w === you.seat ? t('res.win') : res.reason === 'solved' ? t('res.oppWin', { n: res.names[w] || '' }) : res.reason === 'rounds' ? t('res.oppWinRounds', { n: res.names[w] || '' }) : t('res.lose');
         o.mood = o.kind === 'win' ? 'happy' : o.kind === 'draw' ? 'surprise' : 'shake';
         root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: o.kind === 'win', guesses: res.counts[you.seat] || 0 });
       } else {
