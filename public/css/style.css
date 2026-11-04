@@ -445,7 +445,7 @@ svg.av-mini { width: 28px; height: 28px; }
 .fb-text { font-weight: 900; font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
 .h-empty { color: var(--ink-soft); text-align: center; padding: 18px 6px; font-weight: 700; }
 .notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; padding: 4px 6px 4px 4px; min-height: 0; }
-.note { position: relative; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--line); background: #fff; padding: 5px; min-height: 40px; }
+.notes .note { position: relative; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--line); background: #fff; padding: 5px; min-height: 40px; }
 .note-mark { position: absolute; bottom: 1px; right: 1px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); display: none; align-items: center; justify-content: center; color: #fff; }
 .note-mark svg.ico { width: 11px; height: 11px; }
 .note[data-st="1"] { border-color: var(--green); background: #E9F8EC; } .note[data-st="1"] .note-mark { display: flex; background: var(--green); }
@@ -719,7 +719,8 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .lv-block-title small { font-weight: 800; color: var(--ink-soft); font-size: .85rem; }
 .lv-grid { padding: 2px 2px 6px; }
 .lv-card.cleared { background: var(--tl, #F2FFFA); }
-.daily-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin: 12px 0; }
+.page.daily { max-width: 720px; }
+.daily-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0; }
 .daily-tier { display: grid; grid-template-columns: auto 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border-radius: var(--r); border: 2.5px solid var(--ink); background: var(--tl, var(--paper)); box-shadow: 0 4px 0 var(--ink); text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
 .daily-tier:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .daily-tier .tier-badge { min-width: 56px; }
@@ -747,6 +748,9 @@ svg.wake-mascot { width: 54px; height: 54px; animation: float 2.4s infinite; }
 .seg[id$="-tier"] .seg-btn[data-v="2"][aria-checked="true"] { background: #FFE7A8; }
 .seg[id$="-tier"] .seg-btn[data-v="3"][aria-checked="true"] { background: #FFC2B3; }
 .seg[id$="-tier"] .seg-btn[data-v="4"][aria-checked="true"] { background: #7B5CC9; color: #fff; }
+
+/* 結算視窗開著時，提示移到頂端，不要蓋住結算按鈕 */
+body:has(#result-layer:not([hidden])) .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom: auto; flex-direction: column; }
 
 /* 手機橫向（高度很矮）：鎖與鍵盤左右並排，歷史在右 */
 @media (max-height: 520px) and (orientation: landscape) {

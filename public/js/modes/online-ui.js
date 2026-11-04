@@ -470,7 +470,8 @@
       });
       if (you.role === 'player' && myRow) {
         o.kind = myRow.rank === 1 && myRow.solved ? 'win' : 'rank';
-        o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : res.timeUp ? t('res.timeUpWin') : t('res.lastStanding')) : t('res.rank', { n: myRow.rank });
+        var alone = !myRow.out && res.ranking.every(function (x) { return x.seat === myRow.seat || x.out === 'left' || x.out === 'idle'; });
+        o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : res.timeUp ? t('res.timeUpWin') : alone ? t('res.lastStanding') : t('res.rank', { n: 1 })) : t('res.rank', { n: myRow.rank });
         o.mood = myRow.rank === 1 ? 'happy' : myRow.solved ? 'idle' : 'shake';
         o.lines.push(myRow.solved ? t('res.guesses', { n: myRow.solvedN }) : t('res.notSolved'));
         root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: !!myRow.solved, guesses: myRow.solved ? myRow.solvedN : 0 });
@@ -555,7 +556,7 @@
   }
   function onToast(m) {
     var key = 'toast.' + m.code;
-    if (!root.I18N.has(key) || m.code === 'setSecret') return;
+    if (!root.I18N.has(key) || m.code === 'setSecret' || m.code === 'over') return;   // 結束由結算視窗呈現，不再疊 toast 蓋住按鈕
     var p = Object.assign({}, m.params);
     if (m.code === 'duelStart' && room) p.first = playerName(m.params.first);
     K.toast(t(key, p), m.code === 'idleWarn' || m.code === 'dcLoss' || m.code === 'idleOut' ? 'warn' : '');

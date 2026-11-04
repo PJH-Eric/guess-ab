@@ -49,6 +49,8 @@ const SCENES = {
   roomDuel: async p => { await SCENES.lobby(p); await p.evaluate(() => Net.send({ type: 'create', mode: 'duel', name: '測試玩家', settings: { tier: 2, cs: 'random', turnSec: 15 } })); await p.waitForTimeout(700); },
   online: async p => { await SCENES.room(p); p._c2 = await second(p); await p.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(900); },
   duelSetup: async p => { await SCENES.roomDuel(p); p._c2 = await second(p); await p.evaluate(() => Net.send({ type: 'ready', value: true })); await p.waitForTimeout(900); },
+  raceEnd: async p => { await SCENES.online(p); await p.evaluate(() => { const n = OnlineUI.room.game.spec.n; Net.send({ type: 'guess', code: [0, 1, 2, 3].map(x => x % n) }); }); await p.waitForTimeout(300); const q = p._c2.pages()[0]; await q.evaluate(() => Net.send({ type: 'resign' })); await p.waitForTimeout(300); await p.evaluate(() => Net.send({ type: 'resign' })); await p.waitForTimeout(1500); },
+  duelEnd: async p => { await SCENES.duelPlay(p); const q = p._c2.pages()[0]; await q.evaluate(() => Net.send({ type: 'resign' })); await p.waitForTimeout(1500); },
   duelPlay: async p => { await SCENES.duelSetup(p); await p.evaluate(() => { const g = OnlineUI.room.game; const me = g.players[OnlineUI.room.you.seat]; Net.send({ type: 'secret', code: me.myDefault }); }); const q = p._c2.pages()[0]; await q.evaluate(() => { const g = OnlineUI.room.game; Net.send({ type: 'secret', code: g.players[OnlineUI.room.you.seat].myDefault }); }); await p.waitForTimeout(900); }
 };
 const ONLY = process.env.SCENES ? process.env.SCENES.split(',') : Object.keys(SCENES);

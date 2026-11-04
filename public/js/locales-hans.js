@@ -172,7 +172,7 @@
 "say.hint": "提示记在历史里了。",
 "say.yourTurn": "轮到你了！",
 "why.solved": "你已经猜中了，等其他人",
-"why.out": "你的次数用完了",
+"why.out": "你已经退出这一局",
 "why.spectator": "你是观战者",
 "why.waitSecret": "等对手设好密码",
 "why.oppTurn": "轮到 {n}",

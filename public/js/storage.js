@@ -6,6 +6,7 @@
   'use strict';
   var KEY = 'guess-ab:v1';
   var DEFAULTS = {
+    ver: 8,                       // 資料版本：v0.8 起闖關改 50 關、每日挑戰分難度，舊進度不相容
     nickname: '', avatar: 0, lang: '',
     musicOn: true, musicVol: 0.45, sfxOn: true, sfxVol: 0.8, vibrate: true,
     reduceMotion: false, colorAssist: false,
@@ -31,6 +32,10 @@
       if (typeof DEFAULTS[k] === 'object' && !Array.isArray(DEFAULTS[k])) data[k] = Object.assign(clone(DEFAULTS[k]), raw[k]);
       else data[k] = raw[k];
     });
+    if (raw.ver !== DEFAULTS.ver) {
+      /* v0.7 以前的闖關（四難度各 100 關）與每日挑戰（一天一題）格式不同，換成新格式；設定與戰績保留 */
+      data.stars = [[]]; data.daily = clone(DEFAULTS.daily); data.ver = DEFAULTS.ver;
+    }
     if (!Array.isArray(data.stars) || !Array.isArray(data.stars[0])) data.stars = [[]];
     if (!data.daily.tiers) data.daily.tiers = {};
     return data;
@@ -43,7 +48,7 @@
   /** 恢復預設設定（暱稱、頭像、語言、進度與戰績保留） */
   function resetSettings() {
     var d = load();
-    var keep = { nickname: d.nickname, avatar: d.avatar, lang: d.lang, lastSetup: d.lastSetup, stars: d.stars, daily: d.daily, stats: d.stats };
+    var keep = { ver: d.ver, nickname: d.nickname, avatar: d.avatar, lang: d.lang, lastSetup: d.lastSetup, stars: d.stars, daily: d.daily, stats: d.stats };
     data = Object.assign(clone(DEFAULTS), keep);
     save();
     listeners.forEach(function (f) { try { f('*', null); } catch (e) { /* 忽略 */ } });

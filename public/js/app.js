@@ -251,7 +251,7 @@
         '<span class="dt-state">' + (done ? '<i class="ok">' + K.icon('check') + esc(done.won ? t('daily.doneN', { n: done.steps }) : t('daily.gaveUp')) + '</i>' : '<i>' + esc(t('home.dailyGo')) + '</i>') +
         '<i class="streak">' + K.icon('flame') + streak + '</i></span></button>';
     }
-    $('scr-daily').innerHTML = html + '</div><p class="note">' + esc(t('daily.noHint')) + '</p></div>';
+    $('scr-daily').innerHTML = html + '</div></div>';
     $('scr-daily').querySelectorAll('[data-tier]').forEach(function (b) { b.onclick = function () { root.Solo.start({ mode: 'daily', tier: Number(b.getAttribute('data-tier')) }); }; });
   }
 
