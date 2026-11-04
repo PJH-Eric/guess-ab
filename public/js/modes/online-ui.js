@@ -7,7 +7,7 @@
   var doc = root.document;
   var Core = root.GuessCore;
   var K, G, Net;
-  var room = null;            // 最新房間快照
+  var room = null;          // 最新房間快照
   var rooms = [];             // 大廳房間列表
   var invite = null;          // 待確認的邀請 { room, token }
   var shownResult = 0;        // 已顯示結算的局號
@@ -276,7 +276,7 @@
     var playing = room.status === 'playing' || room.status === 'setup';
     K.Modal({ title: t('room.leaveTitle'), body: '<p>' + esc(t(playing && room.you.role === 'player' ? 'room.leaveBodyPlaying' : 'room.leaveBody')) + '</p>', actions: [
       { label: t('common.stay'), kind: 'ghost' },
-      { label: t('room.leave'), kind: 'danger', icon: 'exit', onClick: function () { Net.send({ type: 'leave' }); room = null; setupKey = ''; root.Result.hide(); app().show('lobby'); } }] });
+      { label: t('room.leave'), kind: 'danger', icon: 'exit', onClick: function () { Net.send({ type: 'leave' }); room = null; forgetRoom(); setupKey = ''; root.Result.hide(); app().show('lobby'); } }] });
   }
 
   /* ---------- 側欄（摘要＋聊天）在房間與對局畫面共用 ---------- */
@@ -502,13 +502,18 @@
       ? { label: t('res.againReady'), onClick: function () { Net.send({ type: 'ready', value: true }); wantGame = false; app().show('room'); } }
       : { note: t('res.specNoAgain') };
     o.room = { onClick: function () { wantGame = false; app().show('room'); } };
-    o.home = { onClick: function () { Net.send({ type: 'leave' }); room = null; setupKey = ''; Net.close(); app().show('home'); } };
+    o.home = { onClick: function () { Net.send({ type: 'leave' }); room = null; forgetRoom(); setupKey = ''; Net.close(); app().show('home'); } };
     G.say(o.kind === 'win' ? t('say.win') : o.kind === 'lose' ? t('say.lose') : t('say.over'), o.mood);
     root.Result.show(o);
   }
 
   /* ---------- 伺服器訊息 ---------- */
+  /* 對局中重新整理：同一分頁記住房號，回來時自動連線回原席位（伺服器保留 30 秒） */
+  var ROOM_KEY = 'guess-ab:room';
+  function rememberRoom(id) { try { sessionStorage.setItem(ROOM_KEY, id); } catch (e) { /* 忽略 */ } }
+  function forgetRoom() { try { sessionStorage.removeItem(ROOM_KEY); } catch (e) { /* 忽略 */ } }
   function onRoom(m) {
+    if (m.room && m.room.id) rememberRoom(m.room.id);
     var prev = room;
     room = m.room;
     clockOffset = (room.serverNow || Date.now()) - Date.now();
@@ -542,7 +547,7 @@
   }
   function onClosed(m) {
     var wasIn = !!room;
-    room = null; setupKey = '';
+    room = null; forgetRoom(); setupKey = '';
     root.Result.hide();
     K.Modal.closeAll();
     if (wasIn) K.toast(t('closed.' + (m.reason || 'no_players')), 'warn', 4000);
@@ -567,9 +572,10 @@
   function init() {
     K = root.Kit; G = root.GameView; Net = root.Net;
     Net.on('room', onRoom);
-    Net.on('lobby', function (m) { rooms = m.rooms || []; if (app().screen === 'lobby') renderLobby(); });
+    Net.on('lobby', function (m) { rooms = m.rooms || []; if (!room) forgetRoom();   // 伺服器說你不在房間裡（例如超過 30 秒），就不再自動回房
+      if (app().screen === 'lobby') renderLobby(); });
     Net.on('closed', onClosed);
-    Net.on('left', function () { room = null; setupKey = ''; if (app().screen === 'room' || app().screen === 'game') app().show('lobby'); });
+    Net.on('left', function () { room = null; forgetRoom(); setupKey = ''; if (app().screen === 'room' || app().screen === 'game') app().show('lobby'); });
     Net.on('error', onError);
     Net.on('toast', onToast);
     Net.on('chat', onChat);
@@ -591,6 +597,8 @@
       if (app().screen === 'room') renderRoom();
       else if (app().screen === 'game') { setupKey = ''; syncGame(); }
     });
+    var back = null; try { back = sessionStorage.getItem(ROOM_KEY); } catch (e) { back = null; }
+    if (back) setTimeout(function () { if (app().screen === 'home' && !room) enterLobby(); }, 0);
     /* 時間顯示需要每秒更新（倒數） */
     setInterval(function () { if (room && room.game && room.status === 'playing' && app().screen === 'game') renderGameSummary(); }, 1000);
   }
