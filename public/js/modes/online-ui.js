@@ -504,6 +504,12 @@
         if (g.deadline && r.status === 'playing') { deadline = g.deadline; total = g.turnSec * 1000; }
       }
     }
+    /* 開局倒數：伺服器的 startedAt 之前大家都不能動；時間到再同步一次畫面 */
+    if (r.status === 'playing' && g.startedAt && now() < g.startedAt) {
+      canInput = false;
+      var cdKey = r.id + ':' + g.no;
+      G.countdown(g.startedAt - clockOffset, function () { if (room && room.game && room.id + ':' + room.game.no === cdKey) syncGame(); });
+    }
     G.setTabs(tabs, true);
     G.setInput(canInput, you.role === 'spectator' && r.status !== 'finished' ? '' : why);
     if (you.role === 'spectator' && r.status !== 'finished') watchBoard(r, g, spec); else G.setWatch(null);

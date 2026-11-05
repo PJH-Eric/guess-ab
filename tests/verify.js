@@ -290,11 +290,11 @@ test('程式用到的字串在繁中／簡中／英文都有', () => {
 });
 
 console.log('房間邏輯');
-function fakeWorld() {
+function fakeWorld(opt) {
   let t = 1000000;
   const inbox = {};
   const io = { send: (pid, m) => (inbox[pid] = inbox[pid] || []).push(m), cleared: () => {} };
-  const hub = createHub(io, { now: () => t });
+  const hub = createHub(io, { now: () => t, countdownMs: opt && opt.countdownMs != null ? opt.countdownMs : 0 });
   const P = id => ({ id, name: id });
   const last = (pid, type) => (inbox[pid] || []).filter(m => m.type === type).pop();
   return { hub, P, inbox, last, adv: ms => { t += ms; }, now: () => t };
@@ -448,6 +448,32 @@ test('防狂送：250ms 內第二次猜測被擋；聊天保留 <3 這類符號�
   assert.strictEqual(g.players[0].hist.length, 2);
   w.hub.chat(a, 'I <3 this\u0007 game');
   assert.strictEqual(room.chat[room.chat.length - 1].text, 'I <3 this game');
+});
+test('開局倒數 3 秒：倒數中猜測被擋，總時長與第一回合限時都從倒數結束才開始算', () => {
+  const w = fakeWorld({ countdownMs: 3000 }), a = w.P('a'), b = w.P('b');
+  const room = w.hub.create(a, { mode: 'race', settings: { minutes: 3 } }); w.hub.join(b, { roomId: room.id });
+  w.hub.setReady(b, true); w.hub.start(a);
+  const g = room.game;
+  assert.strictEqual(g.startedAt, w.now() + 3000);
+  assert.strictEqual(g.endsAt, g.startedAt + 3 * 60000);
+  const code = codeFor(g.spec, 1);
+  w.hub.guess(a, code);
+  assert.strictEqual(g.players[0].hist.length, 0);
+  assert.strictEqual(w.last('a', 'error').code, 'not_started');
+  w.adv(3000); w.hub.guess(a, code);
+  assert.strictEqual(g.players[0].hist.length, 1, '倒數結束就能猜');
+  /* 互相出題：兩人鎖好密碼後才倒數 */
+  const w2 = fakeWorld({ countdownMs: 3000 }), c = w2.P('c'), d = w2.P('d');
+  const r2 = w2.hub.create(c, { mode: 'duel', settings: { turnSec: 30 } }); w2.hub.join(d, { roomId: r2.id });
+  w2.hub.setReady(d, true); w2.hub.start(c);
+  const g2 = r2.game;
+  w2.hub.setSecret(c, g2.players[0].defaultSecret); w2.hub.setSecret(d, g2.players[1].defaultSecret);
+  assert.strictEqual(r2.status, 'playing');
+  assert.strictEqual(g2.startedAt, w2.now() + 3000);
+  assert.strictEqual(g2.deadline, g2.startedAt + 30000, '第一回合限時從倒數結束起算');
+  const who = g2.turn === 0 ? c : d;
+  w2.hub.guess(who, codeFor(g2.spec, 1));
+  assert.strictEqual(w2.last(who.id, 'error').code, 'not_started');
 });
 test('房間設定驗證：非法值回到預設（普通、數字、5 分鐘、30 秒、6 人）', () => {
   const s = normSettings('race', { tier: 9, cs: 'nope', minutes: 7, turnSec: 7, cap: 99 });

@@ -4,6 +4,8 @@
  */
 'use strict';
 process.env.PORT = '0';
+process.env.GUESS_COUNTDOWN_MS = '300';   // 開局倒數縮短，測試跑快一點
+const CD_WAIT = () => new Promise(r => setTimeout(r, 350));
 const assert = require('assert');
 const { server } = require('../server.js');
 
@@ -90,6 +92,12 @@ function client(port, name) {
   const P = [A, B], codeFor = seat => seat === 0 ? defB.slice() : [0, 1, 2, 3];
   let miss = codeFor(first).slice().reverse();
   if (miss.join() === codeFor(first).join() || new Set(miss).size < 4) miss = [0, 1, 2, 3].join() === codeFor(first).join() ? [1, 0, 2, 3] : [0, 1, 2, 3];
+  /* 開局倒數：倒數中送出會被擋，startedAt 在開局之後 */
+  assert.ok(play.room.game.startedAt > play.room.serverNow, 'startedAt 在倒數結束時');
+  P[first].send({ type: 'guess', code: miss });
+  const early = await P[first].wait(m => m.type === 'error');
+  assert.strictEqual(early.code, 'not_started', '倒數中不能猜');
+  await CD_WAIT();
   P[first].send({ type: 'guess', code: miss });
   await P[1 - first].wait(m => m.type === 'room' && m.room.game && m.room.game.turn === 1 - first);
   P[1 - first].send({ type: 'guess', code: codeFor(1 - first) });
@@ -127,6 +135,7 @@ function client(port, name) {
   E.send({ type: 'secret', code: [0, 1, 2, 3] });
   F.send({ type: 'secret', code: [3, 2, 1, 0] });
   const pe = await E.wait(m => m.type === 'room' && m.room.status === 'playing');
+  await CD_WAIT();
   F.send({ type: 'leave' });
   const solo = await E.wait(m => m.type === 'room' && m.room.game && m.room.game.players[1].out === 'left');
   assert.strictEqual(solo.room.status, 'playing', '對手離開後不會自動結束');

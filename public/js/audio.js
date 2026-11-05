@@ -70,6 +70,8 @@
     star: function (t) { tone(1568, t, 0.2, { vol: 0.15 }); tone(2093, t + 0.06, 0.25, { vol: 0.1 }); },
     pop: function (t) { tone(880, t, 0.06, { type: 'sine', vol: 0.15, slide: 1320 }); },
     chat: function (t) { tone(1046, t, 0.08, { vol: 0.1 }); tone(1318, t + 0.07, 0.1, { vol: 0.08 }); },
+    count: function (t) { tone(660, t, 0.14, { type: 'sine', vol: 0.16 }); },
+    go: function (t) { tone(988, t, 0.1, { type: 'sine', vol: 0.18 }); tone(1318, t + 0.08, 0.28, { type: 'sine', vol: 0.16 }); },
     turn: function (t) { tone(784, t, 0.1, { vol: 0.14 }); tone(1046, t + 0.1, 0.16, { vol: 0.12 }); }
   };
 

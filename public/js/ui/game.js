@@ -482,6 +482,7 @@
     setCounter('');
     setTimer(0);
     setStopwatch(null);
+    stopCountdown();
     say(c.greet || '', c.mood || 'idle');
     enabled = false;
     renderSlots();
@@ -530,6 +531,50 @@
    *   { since: 時間戳 } → 從這個本機時間開始一直跑
    *   { ms: 毫秒 }      → 停在這個時間（暫停、結束）
    */
+  /**
+   * 開局倒數：蓋住整個遊戲畫面顯示 3 → 2 → 1 → 開始！，期間什麼都不能按。
+   * until＝本機時間戳；同一個 until 重複呼叫不會重來（線上每次更新都會叫）。
+   * 已經過了（例如中途加入）就直接 onDone，不顯示。
+   */
+  var cd = { tick: null, goT: null, until: 0, done: null };
+  function countdown(until, onDone) {
+    /* 線上時差每次更新會差幾毫秒：差不多是同一個時間點就沿用，只更新 onDone */
+    if ((cd.tick || cd.goT) && Math.abs(cd.until - until) < 400) { if (cd.tick) cd.done = onDone || null; return; }
+    stopCountdown();
+    var el = $('countdown'), num = el.querySelector('.cd-num');
+    if (until - Date.now() <= 0) { if (onDone) onDone(); return; }
+    cd.until = until; cd.done = onDone || null;
+    var last = null;
+    el.hidden = false; el.classList.remove('go');
+    function step() {
+      var left = until - Date.now();
+      if (left <= 0) {
+        clearInterval(cd.tick); cd.tick = null;
+        num.textContent = t('cd.go'); el.classList.add('go');
+        num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+        root.Sound.play('go');
+        var f = cd.done; cd.done = null;
+        cd.goT = setTimeout(function () { cd.goT = null; el.hidden = true; el.classList.remove('go'); }, 650);
+        if (f) f();
+        return;
+      }
+      var n = Math.ceil(left / 1000);
+      if (n !== last) {
+        last = n;
+        num.textContent = String(n);
+        num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+        el.setAttribute('aria-label', t('cd.aria', { n: n }));
+        root.Sound.play('count');
+      }
+    }
+    step();
+    if (!el.classList.contains('go')) cd.tick = setInterval(step, 40);
+  }
+  function stopCountdown() {
+    clearInterval(cd.tick); clearTimeout(cd.goT);
+    cd.tick = null; cd.goT = null; cd.until = 0; cd.done = null;
+    var el = $('countdown'); el.hidden = true; el.classList.remove('go');
+  }
   var swState = null;
   function setStopwatch(o) {
     var el = $('stopwatch');
@@ -674,7 +719,7 @@
   }
 
   root.GameView = {
-    init: init, setup: setup, setInput: setInput, setWatch: setWatch, setTabs: setTabs, setCounter: setCounter, setStopwatch: setStopwatch, setTimer: setTimer,
+    init: init, setup: setup, setInput: setInput, setWatch: setWatch, setTabs: setTabs, setCounter: setCounter, setStopwatch: setStopwatch, countdown: countdown, stopCountdown: stopCountdown, get countingDown() { return !!cd.tick; }, setTimer: setTimer,
     say: say, feedback: feedback, setNotes: setNotes, getNotes: getNotes, showTab: showTab, choose: choose,
     recall: recall, keyLabel: keyLabel, fbHtml: fbHtml, rowHtml: rowHtml,
     get cfg() { return cfg; }, get input() { return input.slice(); }, get enabled() { return enabled; },

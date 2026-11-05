@@ -10,6 +10,7 @@
   var Core = root.GuessCore, Table = root.GuessSpecTable, Levels = root.GuessLevels;
   var G, K;
   var cur = null;
+  var COUNTDOWN_MS = 3000;
 
   function t(k, p) { return root.I18N.t(k, p); }
   /** 晚一點才翻譯：切換語言時畫面會重新取字 */
@@ -19,7 +20,7 @@
   function kindOf(cs) { var c = Core.charset(cs); return c ? c.kind : 'digits'; }
   function tierName(tier) { return t('tier.' + tier); }
   function specLine(spec) { return K.specLine(spec); }
-  function stop() { if (cur) cur.dead = true; }
+  function stop() { if (cur) cur.dead = true; if (G) G.stopCountdown(); }
 
   /* ---------- 用時碼錶：暫停不算時間，結束就停住 ---------- */
   function swRun(c) { if (c.runSince == null) c.runSince = Date.now(); G.setStopwatch({ since: c.runSince - c.elapsed }); }
@@ -134,10 +135,19 @@
       c.rows.push({ hint: true, icon: 'key', html: function () { return K.esc(t('hint.clueRow', { n: s + 1 })) + ' <span class="h-sym">' + K.sym(c.spec, v, 'hist-sym') + '</span>'; } });
       G.setNotes(v, 1);
     }
-    G.setInput(true);
+    /* 倒數 3 秒才開始：期間鎖住輸入、碼錶停在 0 */
+    G.setInput(false);
     G.setCounter(t('game.count', { n: 0 }));
-    swRun(c);
+    G.setStopwatch({ ms: 0 });
+    c.counting = true;
     refresh();
+    G.countdown(Date.now() + COUNTDOWN_MS, function () {
+      if (cur !== c || c.dead || c.over) return;
+      c.counting = false;
+      G.setInput(true);
+      swRun(c);
+      refresh(true);
+    });
     if (root.GameAnalytics) root.GameAnalytics.start({ mode: 'solo', difficulty: c.classic ? 'classic' : 't' + c.tier, variant: c.spec.cs }, c.spec.seed);
   }
 
@@ -197,6 +207,7 @@
   function finish(why) {
     var c = cur; if (!c || c.over) return;
     c.over = true;
+    if (c.counting) { c.counting = false; G.stopCountdown(); }
     swFreeze(c);
     G.setInput(false, '');
     var n = myCount();
@@ -252,7 +263,7 @@
       { label: t('sum.restart'), kind: 'primary', onClick: function () { start(cur.mode === 'guess' ? { mode: 'guess', tier: cur.tier, cs: cur.opt.cs } : cur.opt); } }] });
   }
   function pause() {
-    if (!cur || cur.over) return;
+    if (!cur || cur.over || cur.counting) return;   // 倒數中不能暫停
     var paused = cur;
     var wasEnabled = G.enabled;
     G.setInput(false);
