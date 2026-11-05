@@ -167,13 +167,14 @@
   /* ---------- 下拉選單 ---------- */
   /**
    * @param {HTMLElement} btn  觸發按鈕
-   * @param {{items:Array<{value,label,icon?,group?,disabled?}>, value:any, onPick:function, label?:string, wide?:boolean}} o
+   * @param {{items:Array<{value,label,icon?,group?,disabled?}>, value:any, onPick:function, label?:string, wide?:boolean, cls?:string, minW?:number}} o
    */
   function menu(btn, o) {
     if (btn._menuOpen) return;
     var pop = h('<div class="menu-pop scroll" role="listbox" tabindex="-1"></div>');
     if (o.label) pop.setAttribute('aria-label', o.label);
     if (o.wide) pop.classList.add('wide');
+    if (o.cls) o.cls.split(/\s+/).filter(Boolean).forEach(function (c) { pop.classList.add(c); });
     var opts = [];
     var lastGroup = null;
     o.items.forEach(function (it) {
@@ -190,7 +191,7 @@
     btn.setAttribute('aria-expanded', 'true');
     function place() {
       var r = btn.getBoundingClientRect(), vw = root.innerWidth, vh = root.innerHeight;
-      var w = Math.max(r.width, o.wide ? 280 : 180);
+      var w = Math.max(r.width, o.minW || (o.wide ? 280 : 180));
       w = Math.min(w, vw - 16);
       pop.style.width = w + 'px';
       var left = Math.min(Math.max(8, r.left), vw - w - 8);

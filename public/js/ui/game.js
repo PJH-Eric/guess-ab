@@ -167,7 +167,7 @@
     var box = $('notes');
     box.innerHTML = '';
     for (var i = 0; i < cfg.spec.n; i++) {
-      var b = K.h('<button type="button" class="note" data-i="' + i + '">' + K.sym(cfg.spec, i, 'note-sym') + '<span class="note-mark" aria-hidden="true"></span>' + maxBadge(i) + '</button>');
+      var b = K.h('<button type="button" class="note" data-i="' + i + '" aria-haspopup="listbox" aria-expanded="false">' + K.sym(cfg.spec, i, 'note-sym') + '<span class="note-mark" aria-hidden="true"></span>' + maxBadge(i) + '</button>');
       box.appendChild(b);
     }
     renderNotes();
@@ -240,6 +240,28 @@
     if (Object.keys(dup).length) note = t(cfg.spec.cnt ? 'game.overPoolNote' : cfg.spec.rep ? 'game.tooManyNote' : 'game.dupNote');
     $('input-note').textContent = note;
     $('input-note').classList.toggle('warn', !!note);
+  }
+  /** 點筆記方塊：跳出 4 個狀態的小選單直接選（順序：一定有、一定沒有、可能有、清除標記） */
+  var NOTE_ICON = ['', 'check', 'cross', 'question'];
+  function openNoteMenu(btn) {
+    var i = Number(btn.getAttribute('data-i'));
+    /* 矮螢幕（手機橫向）放不下 4 列，改成 2×2，選單要寬一點 */
+    var compact = root.innerHeight <= 480;
+    K.menu(btn, {
+      cls: compact ? 'note-menu compact' : 'note-menu',
+      minW: compact ? 300 : 200,
+      label: K.symName(cfg.spec, i),
+      value: notes[i] || 0,
+      items: [1, 2, 3, 0].map(function (st) {
+        return { value: st, label: t(st ? 'notes.st' + st : 'notes.clear'), icon: '<span class="note-opt-mark" data-st="' + st + '" aria-hidden="true">' + (st ? K.icon(NOTE_ICON[st]) : '') + '</span>' };
+      }),
+      onPick: function (st) {
+        if (!cfg) return;
+        if ((notes[i] || 0) !== st) root.Sound.play('pop');
+        notes[i] = st;
+        renderNotes();
+      }
+    });
   }
   function renderNotes() {
     var marks = ['', K.icon('check'), K.icon('cross'), K.icon('question')];
@@ -569,10 +591,7 @@
     });
     $('notes').addEventListener('click', function (e) {
       var b = e.target.closest('.note'); if (!b || !cfg) return;
-      var i = Number(b.getAttribute('data-i'));
-      notes[i] = ((notes[i] || 0) + 1) % 4;
-      root.Sound.play('pop');
-      renderNotes();
+      openNoteMenu(b);
     });
     $('notes-reset').addEventListener('click', function () { if (!cfg) return; notes = new Array(cfg.spec.n).fill(0); renderNotes(); });
     $('k-back').addEventListener('click', backspace);
