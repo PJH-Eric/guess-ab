@@ -22,7 +22,7 @@ const views = [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], 
     await p.evaluate(() => { Store.set('autoSubmit', false); Store.set('musicOn', false); Store.set('sfxOn', false); });
     const start = cs => p.evaluate(cs => {
       const spec = GuessCore.makeSpec({ cs, rep: true, pool: [2, 5, 7, 9], cnt: [3, 1, 1, 1] }, 'repeat-keyboard');
-      Solo.start({ mode: 'guess', tier: 4, cs, spec });
+      Solo.start({ skipCountdown: true, mode: 'guess', tier: 4, cs, spec });
     }, cs);
     const input = () => p.evaluate(() => GameView.input);
     const label = () => p.locator('#keys .key[data-i="0"] .key-remaining').textContent();
@@ -89,7 +89,7 @@ const views = [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], 
       await key.click();
       assert.deepStrictEqual(await input(), [0, 0, null, null]);
     }
-    await p.evaluate(() => Solo.start({ mode: 'classic' }));
+    await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'classic' }));
     assert.equal(await p.locator('#keys .key-remaining').count(), 0);
     await key.click(); await key.click();
     assert.deepStrictEqual(await input(), [null, null, null, null], '經典數字保留點按刪除');
@@ -118,7 +118,7 @@ const views = [['phone', 390, 844], ['phoneS', 360, 640], ['phoneL', 844, 390], 
       await p.screenshot({ path: path.join(out, lang + '-' + name + '-pool.png') });
       await p.evaluate(() => {
         App.closeSide();
-        Solo.start({ mode: 'guess', tier: 4, cs: 'digits', spec: GuessCore.makeSpec({ cs: 'digits', rep: true, pool: [0, 1, 2, 3, 4, 5, 6, 7, 8], cnt: [2, 1, 1, 1, 1, 1, 1, 1, 1] }, 'many-keys') });
+        Solo.start({ skipCountdown: true, mode: 'guess', tier: 4, cs: 'digits', spec: GuessCore.makeSpec({ cs: 'digits', rep: true, pool: [0, 1, 2, 3, 4, 5, 6, 7, 8], cnt: [2, 1, 1, 1, 1, 1, 1, 1, 1] }, 'many-keys') });
       });
       await p.waitForTimeout(200);
       await p.locator('#keys .key').last().scrollIntoViewIfNeeded();

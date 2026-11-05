@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   const A = await mk(), B = await mk();
   const measure = async (p, label) => { const s = await p.context().newCDPSession(p); await s.send('Performance.enable'); const g = async () => Object.fromEntries((await s.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value])); const a = await g(); await p.waitForTimeout(3000); const z = await g(); console.log(label, 'CPU 佔用 %', ((z.TaskDuration - a.TaskDuration) / 3 * 100).toFixed(1), 'script', ((z.ScriptDuration - a.ScriptDuration) * 33).toFixed(1), 'layout', ((z.LayoutDuration - a.LayoutDuration) * 33).toFixed(1), 'style', ((z.RecalcStyleDuration - a.RecalcStyleDuration) * 33).toFixed(1), '版面重排', z.LayoutCount - a.LayoutCount, '樣式重算', z.RecalcStyleCount - a.RecalcStyleCount); };
   await measure(A, '首頁閒置');
-  await A.evaluate(() => Solo.start({ mode: 'guess', tier: 4, cs: 'mix' })); await A.waitForTimeout(500);
+  await A.evaluate(() => Solo.start({ skipCountdown: true, mode: 'guess', tier: 4, cs: 'mix' })); await A.waitForTimeout(500);
   await measure(A, '單機遊戲');
   for (const p of [A, B]) { await p.evaluate(() => OnlineUI.enterLobby()); } await A.waitForTimeout(800);
   await A.evaluate(() => Net.send({ type: 'create', mode: 'race', name: 'A', settings: { tier: 4, cs: 'mix', minutes: 5 } })); await A.waitForTimeout(400);

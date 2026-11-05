@@ -17,7 +17,7 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   /* 1 闖關：第 1 關過關 → 星數存檔、第 2 關解鎖、「下一關」進第 2 關 */
   await p.evaluate(() => App.show('levels'));
   assert.ok(await p.$eval('.lv-card[data-l="2"]', e => e.disabled), '第 2 關一開始鎖著');
-  await p.evaluate(() => Solo.start({ mode: 'level', level: 1 }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'level', level: 1 }));
   await solve(); await p.waitForTimeout(1200);
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem('guess-ab:v1')).stars[0][0]);
   assert.strictEqual(st, 3, '一次猜中 3 星');
@@ -29,9 +29,9 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   ok('闖關：過關存星、解鎖下一關、下一關按鈕');
 
   /* 2 頭目關不能用提示、用提示最多 2 星 */
-  await p.evaluate(() => Solo.start({ mode: 'level', level: 10 }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'level', level: 10 }));
   assert.ok(await p.$$eval('[data-hint]', bs => bs.every(x => x.disabled)), '頭目關提示鈕停用');
-  await p.evaluate(() => Solo.start({ mode: 'level', level: 11 }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'level', level: 11 }));
   await p.click('[data-hint="has"]'); await p.waitForTimeout(200);
   await p.click('.choose-sym[data-v="0"]'); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => Solo.active.hintsLeft), 2, '簡單段提示 3→2');
@@ -41,13 +41,13 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
 
   /* 3 每日挑戰：完成普通 → 卡片顯示完成、連勝 1；再玩一次＝練習不改紀錄 */
   await p.evaluate(() => Result.hide());
-  await p.evaluate(() => Solo.start({ mode: 'daily', tier: 2 }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'daily', tier: 2 }));
   assert.ok(await p.$$eval('[data-hint]', bs => bs.length === 0), '每日挑戰沒有提示鈕');
   await solve(); await p.waitForTimeout(1200);
   await p.evaluate(() => { Result.hide(); App.show('daily'); });
   const card = await p.$eval('.daily-tier[data-tier="2"]', e => ({ done: e.classList.contains('done'), streak: e.querySelector('.streak').textContent.trim() }));
   assert.ok(card.done && card.streak === '1', JSON.stringify(card));
-  await p.evaluate(() => Solo.start({ mode: 'daily', tier: 2 }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'daily', tier: 2 }));
   assert.ok(await p.evaluate(() => Solo.active.practice), '再玩＝練習');
   await p.evaluate(() => App.show('home'));
   const home = await p.$eval('.dc-state', e => e.textContent);
@@ -79,7 +79,7 @@ function ok(name) { log.push('✓ ' + name); console.log('✓ ' + name); }
   ok('開局設定：神話 8～10 個可重複、沒有提示、題目與預覽一致');
 
   /* 5 鍵盤直打＋自動送出、4 格全同不能送出 */
-  await p.evaluate(() => Solo.start({ mode: 'guess', tier: 4, cs: 'digits' }));
+  await p.evaluate(() => Solo.start({ skipCountdown: true, mode: 'guess', tier: 4, cs: 'digits' }));
   await p.waitForTimeout(500);
   await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.keyboard.press('Digit0'); await p.waitForTimeout(800);
   assert.strictEqual(await p.evaluate(() => Solo.active.rows.length), 0, '0000 不會送出');

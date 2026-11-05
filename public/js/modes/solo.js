@@ -141,7 +141,8 @@
     G.setStopwatch({ ms: 0 });
     c.counting = true;
     refresh();
-    G.countdown(Date.now() + COUNTDOWN_MS, function () {
+    /* skipCountdown 只給開發用的巡檢腳本（scripts/*.cjs），玩家流程不會帶 */
+    G.countdown(Date.now() + (o.skipCountdown ? 0 : COUNTDOWN_MS), function () {
       if (cur !== c || c.dead || c.over) return;
       c.counting = false;
       G.setInput(true);

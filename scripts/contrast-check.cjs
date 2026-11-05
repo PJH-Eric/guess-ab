@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const c = await b.newContext({ viewport: { width: 1180, height: 820 } });
   await c.addInitScript(() => localStorage.setItem('guess-ab:v1', JSON.stringify({ ver: 8, lang: 'zh-Hant', musicOn: false, sfxOn: false })));
   const p = await c.newPage(); await p.goto('http://localhost:3100/'); await p.waitForTimeout(400);
-  const scenes = { home: () => {}, solo: () => App.show('solo'), setup: () => App.openSetup(), levels: () => App.show('levels'), daily: () => App.show('daily'), stats: () => App.show('stats'), help: () => App.show('help'), game: () => Solo.start({ mode: 'level', level: 12 }), lobby: () => OnlineUI.enterLobby() };
+  const scenes = { home: () => {}, solo: () => App.show('solo'), setup: () => App.openSetup(), levels: () => App.show('levels'), daily: () => App.show('daily'), stats: () => App.show('stats'), help: () => App.show('help'), game: () => Solo.start({ skipCountdown: true, mode: 'level', level: 12 }), lobby: () => OnlineUI.enterLobby() };
   const all = {};
   for (const [k, f] of Object.entries(scenes)) {
     await p.evaluate(f); await p.waitForTimeout(700);
