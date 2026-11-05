@@ -592,6 +592,7 @@ svg.res-mascot { width: 76px; height: 76px; flex: none; }
 .res-answer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; }
 .res-label { font-weight: 900; }
 .res-code { display: flex; gap: 5px; }
+.res-word { flex: 1 0 100%; text-align: right; font-size: .9rem; font-weight: 800; color: var(--ink-soft); margin-top: -4px; overflow-wrap: anywhere; }
 .res-code .h-sym { width: 40px; height: 40px; }
 .res-lines { margin: 0; padding: 0 0 0 4px; list-style: none; font-weight: 700; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px; text-align: center; }
 .res-streak { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 900; color: #8A4504; margin: 0; }

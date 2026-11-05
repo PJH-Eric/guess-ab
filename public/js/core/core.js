@@ -84,13 +84,13 @@
     return CHARSETS[cs] ? cs : 'digits';
   }
   /** 依難度隨機產生一局的規格（項目數、重複、項目池都由 seed 決定） */
-  function tierSpec(tier, cs, seed, nRange) {
+  function tierSpec(tier, cs, seed, nRange, extra) {
     tier = Math.max(0, Math.min(TIERS - 1, tier | 0));
     var r = rngFrom(seed + ':tier');
     var range = nRange || TIER_N[tier];
     var n = range[0] + r.int(range[1] - range[0] + 1);
     var rep = r() < TIER_REP[tier];
-    return makeSpec({ cs: resolveCs(cs, r), n: n, rep: rep }, seed);
+    return makeSpec({ cs: resolveCs(cs, r), n: n, rep: rep, wordChance: extra && extra.wordChance }, seed);
   }
   /** 經典模式：寫死數字 0～9 全部 10 個、不重複（不看難度、不能調整） */
   var CLASSIC = { cs: 'digits', n: 10, rep: false };
@@ -146,11 +146,77 @@
         n = cnt.length;
       } else n = size;
     }
-    var pool = opt.pool && validPool(cs, n, opt.pool) ? opt.pool.slice() : makePool(rngFrom(seed + ':pool'), cs, n);
+    var given = opt.pool && validPool(cs, n, opt.pool);
+    /* 字母題：大約一半先選一個真的英文單字，再讓項目池包含它的字母 */
+    var word = null;
+    if (cs === 'letters' && !given) {
+      var wr = rngFrom(seed + ':word');
+      if (wr() < (opt.wordChance != null ? opt.wordChance : WORD_CHANCE)) word = pickWord(wr, !!cnt && Math.max.apply(null, cnt) >= 2);
+    }
+    var pool = given ? opt.pool.slice() : word ? poolWithWord(rngFrom(seed + ':pool'), word, n) : makePool(rngFrom(seed + ':pool'), cs, n);
+    if (word && cnt) fitCnt(cnt, pool, word);
     var spec = { cs: cs, n: n, rep: rep, pool: pool, size: n, seed: String(seed) };
+    if (word) spec.word = word;
     if (cnt) { spec.cnt = cnt; spec.size = cnt.reduce(function (s, x) { return s + x; }, 0); }
     return spec;
   }
+  /* ---------- 英文單字（字母題） ---------- */
+  var WORD_CHANCE = 0.5;
+  var _words;
+  function words() {
+    if (_words !== undefined) return _words;
+    _words = null;
+    if (typeof module === 'object' && module.exports && typeof require === 'function') { try { _words = require('./words.js'); } catch (e) { _words = null; } }
+    if (!_words && typeof self !== 'undefined' && self.GuessWords) _words = self.GuessWords;
+    return _words;
+  }
+  /** 'BOOK' → [1, 14, 14, 10]（A＝0） */
+  function letterIds(w) { var out = []; for (var i = 0; i < w.length; i++) out.push(w.charCodeAt(i) - 65); return out; }
+  function pickWord(rng, canDouble) {
+    var W = words(); if (!W) return null;
+    var list = canDouble ? W.DISTINCT.concat(W.REPEAT) : W.DISTINCT;
+    return list[rng.int(list.length)][0];
+  }
+  /** 項目池＝單字用到的字母＋其他隨機字母，共 n 個，依 A→Z 排序 */
+  function poolWithWord(rng, w, n) {
+    var need = [];
+    letterIds(w).forEach(function (id) { if (need.indexOf(id) < 0) need.push(id); });
+    var rest = [];
+    for (var i = 0; i < 26; i++) if (need.indexOf(i) < 0) rest.push(i);
+    for (var j = rest.length - 1; j > 0; j--) { var k = rng.int(j + 1); var t = rest[j]; rest[j] = rest[k]; rest[k] = t; }
+    return need.concat(rest.slice(0, n - need.length)).sort(function (a, b) { return a - b; });
+  }
+  /** 單字裡重複的字母，次數上限要夠：跟其他項目交換次數（總數不變） */
+  function fitCnt(cnt, pool, w) {
+    var c = {};
+    letterIds(w).forEach(function (id) { c[id] = (c[id] || 0) + 1; });
+    Object.keys(c).forEach(function (id) {
+      var k = c[id], i = pool.indexOf(Number(id));
+      if (cnt[i] >= k) return;
+      for (var j = 0; j < cnt.length; j++) if (j !== i && cnt[j] >= k) { var t = cnt[i]; cnt[i] = cnt[j]; cnt[j] = t; return; }
+    });
+  }
+  /** 4 格密碼剛好拼成單字表裡的單字 → [單字, 繁中, 簡中]，否則 null */
+  function wordOfCode(spec, code) {
+    var W = words();
+    if (!W || !spec || spec.cs !== 'letters' || !code || code.length !== LEN) return null;
+    var s = '';
+    for (var i = 0; i < code.length; i++) s += String.fromCharCode(65 + spec.pool[code[i]]);
+    return W.lookup(s);
+  }
+  /** 用這局項目池拼得出來的單字（換成密碼索引），互相出題的預設密碼用 */
+  function formableWords(spec) {
+    var W = words();
+    if (!W || !spec || spec.cs !== 'letters') return [];
+    var list = spec.rep ? W.DISTINCT.concat(W.REPEAT) : W.DISTINCT, out = [];
+    list.forEach(function (e) {
+      var code = letterIds(e[0]).map(function (id) { return spec.pool.indexOf(id); });
+      if (code.indexOf(-1) >= 0) return;
+      if (validate(code, spec.n, spec.rep, spec.cnt).ok) out.push(code);
+    });
+    return out;
+  }
+
   /** 可重複的局：總數 size 裡挑 1～3 個（且不同項目至少留 4 個）當重複的複本，同一個最多 MAX_SAME 次 */
   function makeCnt(rng, size) {
     var extra = 1 + rng.int(Math.max(1, Math.min(3, size - LEN)));
@@ -239,7 +305,12 @@
     }
     return out;
   }
-  function secretFor(spec) { return makeSecret(rngFrom(spec.seed + ':secret'), spec.n, spec.rep, spec.cnt); }
+  function secretFor(spec) {
+    if (spec.word && spec.cs === 'letters') {
+      var code = letterIds(spec.word).map(function (id) { return spec.pool.indexOf(id); });
+      if (code.indexOf(-1) < 0 && validate(code, spec.n, spec.rep, spec.cnt).ok) return code;
+    }
+    return makeSecret(rngFrom(spec.seed + ':secret'), spec.n, spec.rep, spec.cnt); }
 
   /* ---------- 判定 ---------- */
   var _cs = new Int16Array(64), _cg = new Int16Array(64);
@@ -299,7 +370,7 @@
     hashString: hashString, mulberry32: mulberry32, rngFrom: rngFrom, randomSeed: randomSeed,
     charset: charset, clampN: clampN, symbolRef: symbolRef,
     makePool: makePool, makeSpec: makeSpec, validPool: validPool, validCnt: validCnt, poolList: poolList, maxOf: maxOf, spaceSize: spaceSize,
-    makeSecret: makeSecret, secretFor: secretFor, evaluate: evaluate, fbCode: fbCode, validate: validate,
+    makeSecret: makeSecret, secretFor: secretFor, wordOfCode: wordOfCode, formableWords: formableWords, WORD_CHANCE: WORD_CHANCE, evaluate: evaluate, fbCode: fbCode, validate: validate,
     taipeiDate: taipeiDate, dayNumber: dayNumber
   };
 });

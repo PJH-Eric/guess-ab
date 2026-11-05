@@ -37,8 +37,12 @@
       html += '</div>';
     }
     (o.answers || []).forEach(function (ans) {
+      /* 字母題答案剛好是英文單字：右下角加翻譯，例如 BOOK（書本）；簡中介面用簡中，其他用繁中 */
+      var wd = root.GuessCore && root.GuessCore.wordOfCode(o.spec, ans.code);
+      var wdTxt = wd ? wd[0].charAt(0) + wd[0].slice(1).toLowerCase() + '（' + (root.I18N.lang === 'zh-Hans' ? wd[2] : wd[1]) + '）' : '';
       html += '<div class="res-answer"><span class="res-label">' + K.esc(ans.label) + '</span><span class="res-code">' +
-        ans.code.map(function (v) { return '<span class="h-sym">' + K.sym(o.spec, v, 'res-sym') + '</span>'; }).join('') + '</span></div>';
+        ans.code.map(function (v) { return '<span class="h-sym">' + K.sym(o.spec, v, 'res-sym') + '</span>'; }).join('') + '</span>' +
+        (wd ? '<span class="res-word">' + K.esc(wdTxt) + '</span>' : '') + '</div>';
     });
     if (o.lines && o.lines.length) html += '<ul class="res-lines">' + o.lines.map(function (l) { return '<li>' + K.esc(l) + '</li>'; }).join('') + '</ul>';
     if (o.streak != null) html += '<p class="res-streak">' + K.icon('flame') + '<span>' + K.esc(t('res.streak', { n: o.streak })) + '</span></p>';

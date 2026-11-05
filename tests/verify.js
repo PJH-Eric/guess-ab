@@ -449,6 +449,48 @@ test('防狂送：250ms 內第二次猜測被擋；聊天保留 <3 這類符號�
   w.hub.chat(a, 'I <3 this\u0007 game');
   assert.strictEqual(room.chat[room.chat.length - 1].text, 'I <3 this game');
 });
+test('英文單字：單字表格式正確；字母題約一半是真的單字，密碼合法且就是那個單字；互相出題預設密碼是單字', () => {
+  const W = require('../public/js/core/words.js');
+  const seen = new Set();
+  for (const [list, dbl] of [[W.DISTINCT, false], [W.REPEAT, true]]) for (const e of list) {
+    assert.ok(/^[A-Z]{4}$/.test(e[0]) && e[1] && e[2], '格式：' + e[0]);
+    assert.ok(!seen.has(e[0]), '單字重複：' + e[0]); seen.add(e[0]);
+    const c = {}; for (const ch of e[0]) c[ch] = (c[ch] || 0) + 1;
+    const counts = Object.values(c).sort();
+    assert.deepStrictEqual(counts, dbl ? [1, 1, 2] : [1, 1, 1, 1], '分組錯：' + e[0]);
+  }
+  let words = 0, dbl = 0;
+  const N = 600;
+  for (let i = 0; i < N; i++) {
+    const tier = i % Core.TIERS;
+    const spec = Core.tierSpec(tier, 'letters', 'wtest:' + i);
+    const sec = Core.secretFor(spec);
+    assert.ok(Core.validate(sec, spec.n, spec.rep, spec.cnt).ok, '密碼合法 ' + i);
+    if (spec.word) {
+      words++;
+      assert.strictEqual(Core.wordOfCode(spec, sec)[0], spec.word, '密碼就是那個單字');
+      if (new Set(spec.word).size === 3) { dbl++; assert.ok(spec.rep, '有重複字母的單字只出現在可重複的局'); }
+    }
+    assert.deepStrictEqual(Core.tierSpec(tier, 'letters', 'wtest:' + i), spec, '同一個 seed 結果一樣');
+  }
+  assert.ok(words > N * 0.4 && words < N * 0.6, '大約一半是單字：' + words);
+  assert.ok(dbl > 0, '可重複的局也會出 BOOK 這類單字');
+  /* 其他字元集不受影響 */
+  assert.strictEqual(Core.tierSpec(2, 'digits', 'wtest:x').word, undefined);
+  /* 伺服器傳來的規格（有 pool）不會重選單字 */
+  const s0 = Core.tierSpec(1, 'letters', 'wtest:1', null, { wordChance: 1 });
+  assert.ok(s0.word && Core.formableWords(s0).length >= 1, '互相出題的池一定拼得出單字');
+  const back = Core.makeSpec({ cs: 'letters', n: s0.n, rep: s0.rep, pool: s0.pool, cnt: s0.cnt }, 'x');
+  assert.strictEqual(back.word, undefined);
+  assert.deepStrictEqual(back.pool, s0.pool);
+  /* 互相出題：預設密碼是單字 */
+  const w = fakeWorld(), a = w.P('a'), b = w.P('b');
+  const room = w.hub.create(a, { mode: 'duel', settings: { cs: 'letters', tier: 1 } }); w.hub.join(b, { roomId: room.id });
+  w.hub.setReady(b, true); w.hub.start(a);
+  const g = room.game;
+  assert.ok(Core.wordOfCode(g.spec, g.players[0].defaultSecret), '預設密碼是單字');
+  assert.ok(Core.validate(g.players[1].defaultSecret, g.spec.n, g.spec.rep, g.spec.cnt).ok);
+});
 test('開局倒數 3 秒：倒數中猜測被擋，總時長與第一回合限時都從倒數結束才開始算', () => {
   const w = fakeWorld({ countdownMs: 3000 }), a = w.P('a'), b = w.P('b');
   const room = w.hub.create(a, { mode: 'race', settings: { minutes: 3 } }); w.hub.join(b, { roomId: room.id });
