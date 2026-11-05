@@ -461,7 +461,7 @@
     if (key !== setupKey) {
       setupKey = key;
       var purpose = key.slice(-6) === 'secret' ? 'secret' : 'guess';
-      G.setup({ spec: spec, tier: g.tier, purpose: purpose, onSubmit: onSubmit, greet: purpose === 'secret' ? t('say.greetSecretDefault') : t(you.role === 'spectator' ? 'say.watching' : r.mode === 'duel' ? 'say.greetDuel' : 'say.greetOnline'), notes: you.role === 'player' });
+      G.setup({ spec: spec, tier: g.tier, purpose: purpose, onSubmit: onSubmit, greet: function () { return purpose === 'secret' ? t('say.greetSecretDefault') : t(you.role === 'spectator' ? 'say.watching' : r.mode === 'duel' ? 'say.greetDuel' : 'say.greetOnline'); }, notes: you.role === 'player' });
       if (purpose === 'secret') {
         var me = g.players[you.seat];
         G.setInput(true);
@@ -583,6 +583,13 @@
     var r = room, g = r.game; if (!g || !g.result) return;
     if (!force && shownResult === r.id + ':' + g.no) return;   // 用「房號:局號」，換房間後第 1 局也會顯示
     shownResult = r.id + ':' + g.no;
+    /* 第一次組內容時順便記錄戰績；之後切換語言只重組文字，不再記錄 */
+    var o = resultOf(r, g, true);
+    if (o.kind === 'win') root.Sound.play('win'); else if (o.kind === 'lose') root.Sound.play('lose');
+    G.say(function () { return t(o.kind === 'win' ? 'say.win' : o.kind === 'lose' ? 'say.lose' : 'say.over'); }, o.mood);
+    root.Result.show(function () { return resultOf(r, g, false); });
+  }
+  function resultOf(r, g, first) {
     var you = r.you, res = g.result;
     var spec = g.spec;
     var o = { spec: spec, answers: [], lines: [], again: {}, room: {}, home: {} };
@@ -598,7 +605,7 @@
         o.title = myRow.rank === 1 ? (myRow.solved ? t('res.raceWin') : res.timeUp ? t('res.timeUpWin') : alone ? t('res.lastStanding') : t('res.rank', { n: 1 })) : t('res.rank', { n: myRow.rank });
         o.mood = myRow.rank === 1 ? 'happy' : myRow.solved ? 'idle' : 'shake';
         o.lines.push(myRow.solved ? t('res.guesses', { n: myRow.solvedN }) : t('res.notSolved'));
-        root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: !!myRow.solved, guesses: myRow.solved ? myRow.solvedN : 0 });
+        if (first) root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: !!myRow.solved, guesses: myRow.solved ? myRow.solvedN : 0 });
       } else {
         o.kind = 'rank'; o.title = t('res.raceOver'); o.mood = 'idle';
       }
@@ -610,7 +617,7 @@
         o.kind = w < 0 ? 'draw' : w === you.seat ? 'win' : 'lose';
         o.title = w < 0 ? (res.reason === 'rounds' ? t('res.drawRounds') : t('res.draw')) : w === you.seat ? t('res.win') : res.reason === 'solved' ? t('res.oppWin', { n: res.names[w] || '' }) : res.reason === 'rounds' ? t('res.oppWinRounds', { n: res.names[w] || '' }) : t('res.lose');
         o.mood = o.kind === 'win' ? 'happy' : o.kind === 'draw' ? 'surprise' : 'shake';
-        root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: o.kind === 'win', guesses: res.counts[you.seat] || 0 });
+        if (first) root.Store.record({ kind: (Core.charset(spec.cs) || {}).kind || 'digits', tier: -1, won: o.kind === 'win', guesses: res.counts[you.seat] || 0 });
       } else {
         o.kind = w < 0 ? 'draw' : 'rank';
         o.title = w < 0 ? t('res.draw') : t('res.someoneWin', { n: res.names[w] || '' });
@@ -623,14 +630,12 @@
     /* 用時：競速裡自己猜中就算自己的時間，其他情況算整局 */
     var sw = stopwatchOf(r, g);
     if (sw && sw.ms != null) o.lines.push(t('res.time', { t: K.fmtTime(sw.ms) }));
-    if (o.kind === 'win') root.Sound.play('win'); else if (o.kind === 'lose') root.Sound.play('lose');
     o.again = you.role === 'player'
       ? { label: t('res.againReady'), onClick: function () { if (!r.you.host) Net.send({ type: 'ready', value: true }); wantGame = false; app().show('room'); } }
       : { note: t('res.specNoAgain') };
     o.room = { onClick: function () { wantGame = false; app().show('room'); } };
     o.home = { onClick: function () { Net.send({ type: 'leave' }); room = null; forgetRoom(); setupKey = ''; Net.close(); app().show('home'); } };
-    G.say(o.kind === 'win' ? t('say.win') : o.kind === 'lose' ? t('say.lose') : t('say.over'), o.mood);
-    root.Result.show(o);
+    return o;
   }
 
   /* ---------- 伺服器訊息 ---------- */
@@ -668,8 +673,8 @@
   function onGuessed(m) {
     if (!room || m.seat !== room.you.seat) return;
     G.feedback(m.a, m.b);
-    var say = m.a === 4 ? [t('say.win'), 'happy'] : m.a + m.b === 4 ? [t('say.allIn'), 'surprise'] : m.a >= 2 ? [t('say.close'), 'happy'] : (!m.a && !m.b) ? [t('say.none'), 'think'] : [t('say.keep'), 'idle'];
-    G.say(say[0], say[1]);
+    var say = m.a === 4 ? ['say.win', 'happy'] : m.a + m.b === 4 ? ['say.allIn', 'surprise'] : m.a >= 2 ? ['say.close', 'happy'] : (!m.a && !m.b) ? ['say.none', 'think'] : ['say.keep', 'idle'];
+    G.say(function () { return t(say[0]); }, say[1]);
   }
   function onClosed(m) {
     var wasIn = !!room;
@@ -722,7 +727,7 @@
       if (!room) { if (app().screen === 'lobby') renderLobby(); return; }
       renderChatChannel(); renderChat();
       if (app().screen === 'room') renderRoom();
-      else if (app().screen === 'game') syncGame();   // 不重設畫面：保留已輸入的格子與筆記
+      else if (app().screen === 'game') { app().setTitle(t('room.title', { id: room.id })); syncGame(); }   // 不重設畫面：保留已輸入的格子與筆記
     });
     var back = null; try { back = sessionStorage.getItem(ROOM_KEY); } catch (e) { back = null; }
     if (back) setTimeout(function () { if (app().screen === 'home' && !room) enterLobby(); }, 0);

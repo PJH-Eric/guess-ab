@@ -12,6 +12,8 @@
   var cur = null;
 
   function t(k, p) { return root.I18N.t(k, p); }
+  /** 晚一點才翻譯：切換語言時畫面會重新取字 */
+  function tl(k, p) { return function () { return t(k, p); }; }
   function app() { return root.App; }
 
   function kindOf(cs) { var c = Core.charset(cs); return c ? c.kind : 'digits'; }
@@ -24,11 +26,17 @@
   function swFreeze(c) { if (c.runSince != null) { c.elapsed += Date.now() - c.runSince; c.runSince = null; } G.setStopwatch({ ms: c.elapsed }); }
 
   function reactTo(a, b) {
-    if (a === 4) return [t('say.win'), 'happy'];
-    if (a + b === 4) return [t('say.allIn'), 'surprise'];
-    if (a >= 2) return [t('say.close'), 'happy'];
-    if (!a && !b) return [t('say.none'), 'think'];
-    return [t('say.keep'), 'idle'];
+    if (a === 4) return ['say.win', 'happy'];
+    if (a + b === 4) return ['say.allIn', 'surprise'];
+    if (a >= 2) return ['say.close', 'happy'];
+    if (!a && !b) return ['say.none', 'think'];
+    return ['say.keep', 'idle'];
+  }
+  function subOf(c) {
+    if (c.mode === 'level') return tierName(c.tier) + (c.boss ? '・' + t('level.boss') : '');
+    if (c.mode === 'daily') return c.date + (c.practice ? '・' + t('daily.practice') : '');
+    if (c.mode === 'classic') return t('classic.sub');
+    return tierName(c.tier);
   }
   function titleOf(c) {
     if (c.mode === 'level') return t('level.title', { n: c.info.L });
@@ -40,7 +48,7 @@
   /* ---------- 側欄摘要 ---------- */
   function renderSummary() {
     var c = cur; if (!c) return;
-    var html = '<div class="sum-mode"><b>' + K.esc(c.title) + '</b><span>' + K.esc(c.sub || '') + '</span></div>';
+    var html = '<div class="sum-mode"><b>' + K.esc(c.title) + '</b><span>' + K.esc(subOf(c)) + '</span></div>';
     html += '<dl class="sum-list">' +
       '<dt>' + t('sum.tier') + '</dt><dd>' + (c.classic ? '<span class="tier-badge classic">' + K.esc(t('mode.classicShort')) + '</span>' : '<span class="tier-badge t' + c.tier + '">' + K.esc(tierName(c.tier)) + '</span>') + '</dd>' +
       '<dt>' + t('sum.spec') + '</dt><dd>' + K.esc(specLine(c.spec)) + '</dd>' +
@@ -56,8 +64,8 @@
         '<button type="button" class="btn small" data-hint="has"' + (dis ? ' disabled' : '') + '>' + K.icon('hint-has') + '<span>' + t('hint.has') + '</span></button>' +
         (c.tier >= 3 ? '' : '<button type="button" class="btn small" data-hint="attr"' + (dis ? ' disabled' : '') + '>' + K.icon('hint-attr') + '<span>' + t('hint.attr') + '</span></button>') +
         '</div>' + (c.boss ? '<p class="note">' + t('hint.boss') + '</p>' : '') + '</div>';
-    } else if (c.noHintNote) {
-      html += '<p class="note">' + K.esc(c.noHintNote) + '</p>';
+    } else if (c.noHintKey) {
+      html += '<p class="note">' + K.esc(t(c.noHintKey)) + '</p>';
     }
     html += '<div class="sum-actions">' +
       '<button type="button" class="btn small" id="sum-restart">' + K.icon('refresh') + '<span>' + t('sum.restart') + '</span></button>' +
@@ -92,14 +100,12 @@
       var info = Levels.level(o.level);
       c.info = info; c.spec = info.spec; c.tier = info.tier; c.par = info.par; c.boss = info.boss;
       c.hintsLeft = info.hints;
-      c.sub = tierName(info.tier) + (info.boss ? '・' + t('level.boss') : '');
     } else if (o.mode === 'daily') {
       var date = Core.taipeiDate();
       var d = Levels.dailyInfo(date, o.tier);
       c.info = d; c.spec = d.spec; c.tier = d.tier; c.par = d.par; c.date = date;
       c.practice = !!root.Store.dailyDone(date, d.tier);
-      c.sub = date + (c.practice ? '・' + t('daily.practice') : '');
-      c.noHintNote = t('daily.noHint');
+      c.noHintKey = 'daily.noHint';
     } else if (o.mode === 'classic') {
       /* 經典模式：數字 0～9 不重複，設定寫死；不用提示、不算進各難度統計 */
       c.classic = true;
@@ -107,27 +113,25 @@
       c.tier = null;
       c.par = Table.par(2, c.spec.n, false);
       c.hintsLeft = 0;
-      c.noHintNote = t('classic.noHint');
-      c.sub = t('classic.sub');
+      c.noHintKey = 'classic.noHint';
     } else {
       c.spec = o.spec || Core.tierSpec(o.tier, o.cs, o.seed || ('solo:' + Core.randomSeed()));
       c.tier = o.tier;
       c.par = Table.par(o.tier, c.spec.n, c.spec.rep);
       c.hintsLeft = Levels.HINTS[o.tier];
-      if (!c.hintsLeft) c.noHintNote = t('hint.none');
-      c.sub = tierName(o.tier);
+      if (!c.hintsLeft) c.noHintKey = 'hint.none';
     }
     c.title = titleOf(c);
     c.secret = Core.secretFor(c.spec);
     cur = c;
     app().show('game');
     app().setTitle(c.title);
-    G.setup({ spec: c.spec, tier: c.tier, purpose: 'guess', onSubmit: onSubmit, greet: t(c.mode === 'daily' ? 'say.greetDaily' : 'say.greetGuess') + (c.spec.rep ? ' ' + t('say.repNote') : '') });
+    G.setup({ spec: c.spec, tier: c.tier, purpose: 'guess', onSubmit: onSubmit, greet: function () { return t(c.mode === 'daily' ? 'say.greetDaily' : 'say.greetGuess') + (c.spec.rep ? ' ' + t('say.repNote') : ''); } });
     /* 闖關最前面幾關的開局線索 */
     if (c.info && c.info.clues) {
       var r = Core.rngFrom(c.spec.seed + ':clue');
       var s = r.int(4), v = c.secret[s];
-      c.rows.push({ hint: true, icon: 'key', html: K.esc(t('hint.clueRow', { n: s + 1 })) + ' <span class="h-sym">' + K.sym(c.spec, v, 'hist-sym') + '</span>' });
+      c.rows.push({ hint: true, icon: 'key', html: function () { return K.esc(t('hint.clueRow', { n: s + 1 })) + ' <span class="h-sym">' + K.sym(c.spec, v, 'hist-sym') + '</span>'; } });
       G.setNotes(v, 1);
     }
     G.setInput(true);
@@ -144,7 +148,7 @@
     c.rows.push({ n: n, guess: code, a: r.a, b: r.b });
     G.feedback(r.a, r.b);
     var say = reactTo(r.a, r.b);
-    G.say(say[0], say[1]);
+    G.say(tl(say[0]), say[1]);
     G.setCounter(t('game.count', { n: n }));
     refresh(true);
     if (r.a === 4) finish('win');
@@ -170,19 +174,20 @@
         if (!opts.length) { K.toast(t('hint.posDone'), 'warn'); return; }
         var v = opts[Core.rngFrom(c.spec.seed + ':hp:' + c.hintsUsed).int(opts.length)];
         c.excluded[x][v] = 1;
-        html = K.esc(t('hint.posRow', { n: x + 1 })) + ' <span class="h-sym">' + K.sym(c.spec, v, 'hist-sym') + '</span>';
+        html = function () { return K.esc(t('hint.posRow', { n: x + 1 })) + ' <span class="h-sym">' + K.sym(c.spec, v, 'hist-sym') + '</span>'; };
       } else if (kind === 'has') {
         var cnt = c.secret.filter(function (s) { return s === x; }).length;
-        html = '<span class="h-sym">' + K.sym(c.spec, x, 'hist-sym') + '</span> ' + K.esc(cnt ? (c.spec.rep ? t('hint.hasCount', { n: cnt }) : t('hint.hasYes')) : t('hint.hasNo'));
+        html = function () { return '<span class="h-sym">' + K.sym(c.spec, x, 'hist-sym') + '</span> ' + K.esc(cnt ? (c.spec.rep ? t('hint.hasCount', { n: cnt }) : t('hint.hasYes')) : t('hint.hasNo')); };
         G.setNotes(x, cnt ? 1 : 2);
       } else {
-        html = K.esc(t('hint.attrRow', { n: x + 1, v: t('attr.' + attrOf(c.spec, c.secret[x])) }));
+        var at = attrOf(c.spec, c.secret[x]);
+        html = function () { return K.esc(t('hint.attrRow', { n: x + 1, v: t('attr.' + at) })); };
       }
       c.hintsUsed++;
       if (c.hintsLeft !== Infinity) c.hintsLeft--;
       c.rows.push({ hint: true, icon: kind === 'pos' ? 'hint-pos' : kind === 'has' ? 'hint-has' : 'hint-attr', html: html });
       root.Sound.play('hint');
-      G.say(t('say.hint'), 'think');
+      G.say(tl('say.hint'), 'think');
       refresh(true);
       G.showTab('hist');
     });
@@ -197,38 +202,48 @@
     var n = myCount();
     var won = why === 'win';
     var spec = c.spec;
-    var o = { spec: spec, answers: [{ label: t('res.answer'), code: c.secret }], lines: [], again: { onClick: function () { start(c.mode === 'guess' ? { mode: 'guess', tier: c.tier, cs: c.opt.cs } : c.opt); } },
-      room: { note: t('res.noRoom') }, home: { onClick: function () { stop(); app().show('home'); } } };
-    o.kind = won ? 'win' : 'lose';
-    o.title = won ? t('res.solved', { n: n }) : t('res.giveup');
-    o.mood = won ? 'happy' : 'shake';
-    if (won) o.lines.push(t('res.vsPar', { n: n, p: c.par }));
-    o.lines.push(t('res.time', { t: K.fmtTime(c.elapsed) }));
-    if (c.hintsUsed) o.lines.push(t('res.hintsUsed', { n: c.hintsUsed }));
+    /* 副作用（紀錄、星數、連勝）只做一次；結算內容用 build() 組，切換語言時重組 */
+    var stars = null, newBest = false, streak = null;
     if (!c.practice) root.Store.record({ kind: kindOf(spec.cs), tier: c.tier, won: won, guesses: n });
-    if (c.mode === 'level') {
-      var L = c.info.L;
-      if (won) {
-        var stars = Levels.stars(c.info, n, c.hintsUsed);
-        o.stars = stars;
-        if (root.Store.setStars(0, L, stars)) o.lines.push(t('res.newBest'));
-        o.again = L < Levels.COUNT ? { label: t('res.nextLevel'), onClick: function () { start({ mode: 'level', level: L + 1 }); } } : { label: t('res.retry'), onClick: function () { start(c.opt); } };
-        setTimeout(function () { for (var s = 0; s < stars; s++) setTimeout(function () { root.Sound.play('star'); }, s * 180); }, 500);
-      } else o.again = { label: t('res.retry'), onClick: function () { start(c.opt); } };
+    if (c.mode === 'level' && won) {
+      stars = Levels.stars(c.info, n, c.hintsUsed);
+      newBest = !!root.Store.setStars(0, c.info.L, stars);
+      setTimeout(function () { for (var s = 0; s < stars; s++) setTimeout(function () { root.Sound.play('star'); }, s * 180); }, 500);
     }
-    if (c.mode === 'daily') {
-      if (!c.practice) {
-        var p = c.date.split('-').map(Number);
-        var prev = Core.taipeiDate(Date.UTC(p[0], p[1] - 1, p[2]) - 86400000);
-        o.streak = root.Store.recordDaily(c.date, prev, c.tier, won, n).streak;
-      } else o.lines.push(t('daily.practiceNote'));
-      o.again = { label: t('res.practice'), onClick: function () { start({ mode: 'daily', tier: c.tier }); } };
+    if (c.mode === 'daily' && !c.practice) {
+      var p = c.date.split('-').map(Number);
+      var prev = Core.taipeiDate(Date.UTC(p[0], p[1] - 1, p[2]) - 86400000);
+      streak = root.Store.recordDaily(c.date, prev, c.tier, won, n).streak;
+    }
+    function again() { start(c.mode === 'guess' ? { mode: 'guess', tier: c.tier, cs: c.opt.cs } : c.opt); }
+    function build() {
+      var o = { spec: spec, answers: [{ label: t('res.answer'), code: c.secret }], lines: [], again: { onClick: again },
+        room: { note: t('res.noRoom') }, home: { onClick: function () { stop(); app().show('home'); } } };
+      o.kind = won ? 'win' : 'lose';
+      o.title = won ? t('res.solved', { n: n }) : t('res.giveup');
+      o.mood = won ? 'happy' : 'shake';
+      if (won) o.lines.push(t('res.vsPar', { n: n, p: c.par }));
+      o.lines.push(t('res.time', { t: K.fmtTime(c.elapsed) }));
+      if (c.hintsUsed) o.lines.push(t('res.hintsUsed', { n: c.hintsUsed }));
+      if (c.mode === 'level') {
+        var L = c.info.L;
+        if (won) {
+          o.stars = stars;
+          if (newBest) o.lines.push(t('res.newBest'));
+          o.again = L < Levels.COUNT ? { label: t('res.nextLevel'), onClick: function () { start({ mode: 'level', level: L + 1 }); } } : { label: t('res.retry'), onClick: function () { start(c.opt); } };
+        } else o.again = { label: t('res.retry'), onClick: function () { start(c.opt); } };
+      }
+      if (c.mode === 'daily') {
+        if (c.practice) o.lines.push(t('daily.practiceNote')); else o.streak = streak;
+        o.again = { label: t('res.practice'), onClick: function () { start({ mode: 'daily', tier: c.tier }); } };
+      }
+      return o;
     }
     root.Sound.play(won ? 'win' : 'lose');
-    G.say(won ? t('say.win') : t('say.lose'), o.mood);
+    G.say(tl(won ? 'say.win' : 'say.lose'), won ? 'happy' : 'shake');
     renderSummary();
     if (root.GameAnalytics) root.GameAnalytics.end({ result: won ? 'win' : 'lose' }, spec.seed);
-    setTimeout(function () { if (cur === c) root.Result.show(o); }, why === 'giveup' ? 50 : 650);
+    setTimeout(function () { if (cur === c) root.Result.show(build); }, why === 'giveup' ? 50 : 650);
   }
 
   function confirmRestart() {
@@ -255,7 +270,7 @@
 
   function init() {
     G = root.GameView; K = root.Kit;
-    root.I18N.onChange(function () { if (cur && !cur.dead && app().screen === 'game') { cur.title = titleOf(cur); app().setTitle(cur.title); refresh(true); } });
+    root.I18N.onChange(function () { if (cur && !cur.dead && app().screen === 'game') { cur.title = titleOf(cur); app().setTitle(cur.title); G.setCounter(t('game.count', { n: myCount() })); refresh(true); } });
   }
 
   root.Solo = { init: init, start: start, stop: stop, pause: pause, get active() { return cur && !cur.dead ? cur : null; } };

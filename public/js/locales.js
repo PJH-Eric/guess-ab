@@ -110,7 +110,7 @@
     'toast.dcLoss': '{n} 斷線太久，判定離場', 'toast.idleOut': '{n} 太久沒操作，視為放棄', 'toast.idleWarn': '你已經 2 分半沒操作了，30 秒內不動會被判定放棄',
     'err.generic': '發生了一點問題，請再試一次', 'err.room_missing': '找不到這個房間（可能已經關閉）', 'err.invite_invalid': '邀請連結無效', 'err.invite_revoked': '邀請連結已被撤銷',
     'err.spec_full': '觀戰席已滿', 'err.busy_sit': '對局進行中，等這局結束再換位置', 'err.full': '座位已滿', 'err.not_player': '你不是玩家',
-    'err.start_need_players': 'Need at least 2 players to start', 'err.start_not_ready': 'Some players are not ready yet', 'err.busy_settings': '對局進行中不能改設定', 'err.start_need_players': '至少要 2 位玩家才能開始', 'err.start_not_ready': '還有玩家沒準備好', 'err.cap_busy': '後面的位子還有人，不能縮小人數',
+    'err.busy_settings': '對局進行中不能改設定', 'err.start_need_players': '至少要 2 位玩家才能開始', 'err.start_not_ready': '還有玩家沒準備好', 'err.cap_busy': '後面的位子還有人，不能縮小人數',
     'err.bad_code_length': '要填滿 4 格', 'err.bad_code_unknown': '有不認得的符號', 'err.bad_code_duplicate': '這一局不能重複', 'err.not_turn': '還沒輪到你', 'err.server': '伺服器出錯了，請再試一次',
     'lat.connecting': '連線中', 'lat.ariaConnecting': '連線中', 'lat.aria': '延遲 {ms} 毫秒', 'lat.title': '與伺服器的延遲',
     /* v0.8 */
@@ -266,7 +266,7 @@
     'toast.dcLoss': '{n} was disconnected too long and left the game', 'toast.idleOut': '{n} was idle too long and forfeited', 'toast.idleWarn': "You've been idle for 2.5 minutes. Act within 30 s or you'll forfeit",
     'err.generic': 'Something went wrong. Please try again', 'err.room_missing': "Room not found (it may have closed)", 'err.invite_invalid': 'Invalid invite link', 'err.invite_revoked': 'This invite link was revoked',
     'err.spec_full': 'Spectator seats are full', 'err.busy_sit': 'A game is in progress. Switch seats after it ends', 'err.full': 'All seats are taken', 'err.not_player': "You're not a player",
-    'err.busy_settings': "Settings can't change during a game", 'err.cap_busy': 'Later seats are occupied; cannot shrink',
+    'err.start_need_players': 'Need at least 2 players to start', 'err.start_not_ready': 'Some players are not ready yet', 'err.busy_settings': "Settings can't change during a game", 'err.cap_busy': 'Later seats are occupied; cannot shrink',
     'err.bad_code_length': 'Fill all 4 slots', 'err.bad_code_unknown': 'Unknown symbol', 'err.bad_code_duplicate': 'No repeats this game', 'err.not_turn': "It's not your turn", 'err.server': 'Server error. Please try again',
     'lat.connecting': 'Connecting', 'lat.ariaConnecting': 'Connecting', 'lat.aria': 'Latency {ms} ms', 'lat.title': 'Latency to server',
     /* v0.8 */

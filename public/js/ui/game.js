@@ -403,7 +403,7 @@
   }
   function rowHtml(r, idx, spec) {
     if (r.hint) {
-      return '<li class="h-row hint"><span class="h-no">' + K.icon(r.icon || 'question') + '</span><span class="h-hint">' + (r.html || K.esc(r.text)) + '</span></li>';
+      return '<li class="h-row hint"><span class="h-no">' + K.icon(r.icon || 'question') + '</span><span class="h-hint">' + (typeof r.html === 'function' ? r.html() : r.html || K.esc(r.text)) + '</span></li>';
     }
     if (r.timeout) return '<li class="h-row timeout"><span class="h-no">' + r.n + '</span><span class="h-code">' + K.icon('timer') + ' ' + K.esc(t('game.timeoutRow')) + '</span></li>';
     var code = r.guess.map(function (v) { return '<span class="h-sym">' + K.sym(spec, v, 'hist-sym') + '</span>'; }).join('');
@@ -452,9 +452,15 @@
 
   /* ---------- 小精靈 ---------- */
   var MOODS = { idle: 0, think: 1, happy: 2, shake: 3, surprise: 4, sleep: 5 };
+  /**
+   * 小精靈說話。text 可以是字串或「回傳字串的函式」；
+   * 傳函式的話，切換語言時會用新語言重講一次（不會再跳一下）。
+   */
+  var sayFn = null;
+  function sayText(text) { var s = typeof text === 'function' ? text() : text; $('bubble').textContent = s || ''; $('bubble').hidden = !s; }
   function say(text, mood) {
-    $('bubble').textContent = text || '';
-    $('bubble').hidden = !text;
+    sayFn = typeof text === 'function' ? text : null;
+    sayText(text);
     $('mascot').innerHTML = root.GuessArt.svg('mascot', MOODS[mood || 'idle'] || 0, 'mascot-svg');
     var m = $('mascot');
     m.classList.remove('bounce'); void m.offsetWidth; m.classList.add('bounce');
@@ -542,7 +548,7 @@
     var el = $('timer');
     clearInterval(timerTick);
     var num = el.querySelector('.timer-num');
-    if (!deadline) { el.hidden = true; num.removeAttribute('data-until'); return; }
+    if (!deadline) { el.hidden = true; num.removeAttribute('data-until'); el.removeAttribute('aria-label'); return; }
     el.hidden = false;
     var local = deadline - (offset || 0);      // 換成本機時間
     num.setAttribute('data-until', String(local));
@@ -664,7 +670,7 @@
     bind();
     if (root.ResizeObserver) new ResizeObserver(function () { fitCols(); }).observe($('keys'));
     else root.addEventListener('resize', fitCols);
-    root.I18N.onChange(function () { if (cfg) { buildKeys(); buildNotes(); renderSlots(); renderHistory(); $('k-submit-text').textContent = cfg.purpose === 'secret' ? t('game.lock') : t('game.submit'); } });
+    root.I18N.onChange(function () { if (cfg) { if (sayFn) sayText(sayFn); if (!$('stopwatch').hidden) $('stopwatch').setAttribute('aria-label', t('game.elapsed')); buildKeys(); buildNotes(); renderSlots(); renderHistory(); $('k-submit-text').textContent = cfg.purpose === 'secret' ? t('game.lock') : t('game.submit'); } });
   }
 
   root.GameView = {

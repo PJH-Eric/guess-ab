@@ -6,6 +6,7 @@
   'use strict';
   var doc = root.document;
   var prevFocus = null, onKey = null;
+  var builder = null;   // 傳函式進來時保留，切換語言就用新語言重組內容
 
   function t(k, p) { return root.I18N.t(k, p); }
 
@@ -15,9 +16,16 @@
    *   streak?:number, ranking?:Array, again:{label?,onClick?,disabled?,note?}, room:{onClick?,disabled?,note?}, home:{onClick}}} o
    */
   function show(o) {
+    builder = typeof o === 'function' ? o : null;
+    prevFocus = doc.activeElement;
+    render(builder ? builder() : o, false);
+  }
+  /** relang＝切換語言重畫：不重播進場動畫，焦點留在同一顆按鈕 */
+  function render(o, relang) {
     var K = root.Kit;
     var layer = doc.getElementById('result-layer');
-    prevFocus = doc.activeElement;
+    var keepAct = relang && doc.activeElement && layer.contains(doc.activeElement) ? doc.activeElement.getAttribute('data-act') : null;
+    if (onKey) doc.removeEventListener('keydown', onKey, true);
     var mascotIdx = { idle: 0, think: 1, happy: 2, shake: 3, surprise: 4, sleep: 5 }[o.mood || 'idle'] || 0;
     // data-result-share：共用的 result-share.js 會在卡片底部加上「分享結果」，把這張結算卡做成分享圖片
     var html = '<div class="result-card" role="dialog" aria-modal="true" aria-labelledby="res-title" data-result-share>' +
@@ -48,13 +56,13 @@
     layer.innerHTML = html;
     layer.hidden = false;
     doc.body.classList.add('result-open');   // 讓提示移到上方（不用 :has，避免整頁樣式重算）
-    layer.classList.remove('in'); void layer.offsetWidth; layer.classList.add('in');
+    if (!relang) { layer.classList.remove('in'); void layer.offsetWidth; layer.classList.add('in'); }
     ['again', 'room', 'home'].forEach(function (k) {
       var b = layer.querySelector('[data-act="' + k + '"]');
       if (b && o[k] && o[k].onClick && !o[k].disabled) b.addEventListener('click', function () { hide(); o[k].onClick(); });
     });
-    var first = layer.querySelector('.res-actions button:not([disabled])');
-    if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 60);
+    var first = keepAct ? layer.querySelector('[data-act="' + keepAct + '"]') : layer.querySelector('.res-actions button:not([disabled])');
+    if (first) { if (relang) first.focus({ preventScroll: true }); else setTimeout(function () { first.focus({ preventScroll: true }); }, 60); }
     onKey = function (e) {
       if (layer.hidden) return;
       // 分享圖片視窗開著時，由它自己困住焦點
@@ -81,12 +89,15 @@
     var layer = doc.getElementById('result-layer');
     if (layer.hidden) return;
     layer.hidden = true;
+    builder = null;
     doc.body.classList.remove('result-open');
     layer.innerHTML = '';
     if (onKey) doc.removeEventListener('keydown', onKey, true);
     onKey = null;
   }
   function visible() { return !doc.getElementById('result-layer').hidden; }
+
+  if (root.I18N) root.I18N.onChange(function () { if (builder && visible()) render(builder(), true); });
 
   root.Result = { show: show, hide: hide, visible: visible };
 })(typeof self !== 'undefined' ? self : this);
