@@ -124,6 +124,8 @@
 "notes.reset": "全部清掉",
 "notes.st0": "未标记",
 "notes.clear": "清除标记",
+"game.elapsed": "用时",
+"res.time": "用时 {t}",
 "notes.st1": "一定有",
 "notes.st2": "一定没有",
 "notes.st3": "可能有",

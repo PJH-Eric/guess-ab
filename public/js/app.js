@@ -96,7 +96,8 @@
     }
   }
 
-  function backOf(a) { return !a ? 'home' : a.mode === 'level' ? 'levels' : a.mode === 'daily' ? 'daily' : 'setup'; }
+  /* 經典模式不經過開局設定，直接回模式選擇 */
+  function backOf(a) { return !a ? 'home' : a.mode === 'level' ? 'levels' : a.mode === 'daily' ? 'daily' : a.mode === 'classic' ? 'solo' : 'setup'; }
 
   /* ---------- 首頁 ---------- */
   function todayInfo() {

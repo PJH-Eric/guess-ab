@@ -96,6 +96,8 @@ function client(port, name) {
   const fin = await A.wait(m => m.type === 'room' && m.room.status === 'finished');
   assert.strictEqual(fin.room.game.result.winnerSeat, 1 - first);
   assert.deepStrictEqual(fin.room.game.result.secrets, [[0, 1, 2, 3], defB]);
+  /* 用時碼錶：結束時間要送到前端，而且不會早於開局 */
+  assert.ok(fin.room.game.endedAt >= fin.room.game.startedAt && fin.room.game.startedAt > 0, '結束快照帶 endedAt');
 
   /* 撤銷邀請後，用舊 token 加入會失敗 */
   A.send({ type: 'invite_revoke' });

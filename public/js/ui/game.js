@@ -475,6 +475,7 @@
     buildSlots(); buildKeys(); buildNotes();
     setCounter('');
     setTimer(0);
+    setStopwatch(null);
     say(c.greet || '', c.mood || 'idle');
     enabled = false;
     renderSlots();
@@ -517,6 +518,24 @@
     renderHistory();
   }
   function setCounter(text) { $('counter').textContent = text || ''; $('counter').hidden = !text; }
+  /**
+   * 用時碼錶（正數）：
+   *   null            → 收起來
+   *   { since: 時間戳 } → 從這個本機時間開始一直跑
+   *   { ms: 毫秒 }      → 停在這個時間（暫停、結束）
+   */
+  var swState = null;
+  function setStopwatch(o) {
+    var el = $('stopwatch');
+    var key = o ? (o.since != null ? 's' + o.since : 'm' + o.ms) : '';
+    if (key === swState && el.innerHTML) return;   // 線上每次更新都會呼叫，沒變就不重畫
+    if (!o && swState === '') return;
+    swState = key;
+    if (!o) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.setAttribute('aria-label', t('game.elapsed'));
+    el.innerHTML = K.icon('timer') + (o.since != null ? K.clockHtml('since', o.since, 'sw-num') : '<b class="clk sw-num">' + K.fmtTime(o.ms || 0) + '</b>');
+  }
   var timerTick = null;
   /** 倒數條＋數字：deadline（伺服器毫秒時間戳）、總長、與伺服器的時差；10ms 一個 tick、秒數到小數第二位 */
   function setTimer(deadline, total, offset) {
@@ -649,7 +668,7 @@
   }
 
   root.GameView = {
-    init: init, setup: setup, setInput: setInput, setWatch: setWatch, setTabs: setTabs, setCounter: setCounter, setTimer: setTimer,
+    init: init, setup: setup, setInput: setInput, setWatch: setWatch, setTabs: setTabs, setCounter: setCounter, setStopwatch: setStopwatch, setTimer: setTimer,
     say: say, feedback: feedback, setNotes: setNotes, getNotes: getNotes, showTab: showTab, choose: choose,
     recall: recall, keyLabel: keyLabel, fbHtml: fbHtml, rowHtml: rowHtml,
     get cfg() { return cfg; }, get input() { return input.slice(); }, get enabled() { return enabled; },

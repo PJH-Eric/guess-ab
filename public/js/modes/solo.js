@@ -19,6 +19,10 @@
   function specLine(spec) { return K.specLine(spec); }
   function stop() { if (cur) cur.dead = true; }
 
+  /* ---------- 用時碼錶：暫停不算時間，結束就停住 ---------- */
+  function swRun(c) { if (c.runSince == null) c.runSince = Date.now(); G.setStopwatch({ since: c.runSince - c.elapsed }); }
+  function swFreeze(c) { if (c.runSince != null) { c.elapsed += Date.now() - c.runSince; c.runSince = null; } G.setStopwatch({ ms: c.elapsed }); }
+
   function reactTo(a, b) {
     if (a === 4) return [t('say.win'), 'happy'];
     if (a + b === 4) return [t('say.allIn'), 'surprise'];
@@ -83,7 +87,7 @@
   function start(o) {
     stop();
     root.Result.hide();
-    var c = { mode: o.mode, opt: o, rows: [], hintsUsed: 0, over: false, dead: false, startedAt: Date.now() };
+    var c = { mode: o.mode, opt: o, rows: [], hintsUsed: 0, over: false, dead: false, startedAt: Date.now(), elapsed: 0, runSince: null };
     if (o.mode === 'level') {
       var info = Levels.level(o.level);
       c.info = info; c.spec = info.spec; c.tier = info.tier; c.par = info.par; c.boss = info.boss;
@@ -128,6 +132,7 @@
     }
     G.setInput(true);
     G.setCounter(t('game.count', { n: 0 }));
+    swRun(c);
     refresh();
     if (root.GameAnalytics) root.GameAnalytics.start({ mode: 'solo', difficulty: c.classic ? 'classic' : 't' + c.tier, variant: c.spec.cs }, c.spec.seed);
   }
@@ -187,6 +192,7 @@
   function finish(why) {
     var c = cur; if (!c || c.over) return;
     c.over = true;
+    swFreeze(c);
     G.setInput(false, '');
     var n = myCount();
     var won = why === 'win';
@@ -197,6 +203,7 @@
     o.title = won ? t('res.solved', { n: n }) : t('res.giveup');
     o.mood = won ? 'happy' : 'shake';
     if (won) o.lines.push(t('res.vsPar', { n: n, p: c.par }));
+    o.lines.push(t('res.time', { t: K.fmtTime(c.elapsed) }));
     if (c.hintsUsed) o.lines.push(t('res.hintsUsed', { n: c.hintsUsed }));
     if (!c.practice) root.Store.record({ kind: kindOf(spec.cs), tier: c.tier, won: won, guesses: n });
     if (c.mode === 'level') {
@@ -234,6 +241,7 @@
     var paused = cur;
     var wasEnabled = G.enabled;
     G.setInput(false);
+    swFreeze(paused);
     K.Modal({
       title: t('pause.title'), cls: 'pause', body: '<p class="center">' + K.esc(t('pause.body')) + '</p>',
       actions: [
@@ -241,7 +249,7 @@
         { label: t('sum.restart'), icon: 'refresh', onClick: function () { paused.leaving = true; start(paused.mode === 'guess' ? { mode: 'guess', tier: paused.tier, cs: paused.opt.cs } : paused.opt); } },
         { label: t('res.home'), kind: 'ghost', icon: 'home', onClick: function () { paused.leaving = true; stop(); app().show('home'); } }
       ],
-      onClose: function () { if (cur === paused && !paused.over && !paused.leaving && wasEnabled) G.setInput(true); }
+      onClose: function () { if (cur === paused && !paused.over && !paused.leaving) { swRun(paused); if (wasEnabled) G.setInput(true); } }
     });
   }
 

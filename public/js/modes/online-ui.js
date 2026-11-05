@@ -509,7 +509,20 @@
     if (you.role === 'spectator' && r.status !== 'finished') watchBoard(r, g, spec); else G.setWatch(null);
     G.setCounter(counter);
     G.setTimer(deadline, total, clockOffset);
+    G.setStopwatch(stopwatchOf(r, g));
     renderGameSummary();
+  }
+
+  /**
+   * 用時碼錶：從開局（互相出題是兩人都鎖好密碼之後）開始算。
+   * 競速裡自己猜中了就停在猜中那一刻；整局結束停在結束時間；出題階段不顯示。
+   */
+  function stopwatchOf(r, g) {
+    if (!g.startedAt || g.phase === 'setup' || r.status === 'setup') return null;
+    var me = r.you.role === 'player' ? g.players[r.you.seat] : null;
+    if (r.mode === 'race' && me && me.solved && me.hist && me.hist.length) return { ms: me.hist[me.hist.length - 1].t - g.startedAt };
+    if (r.status === 'finished') return { ms: (g.endedAt || now()) - g.startedAt };
+    return { since: g.startedAt - clockOffset };
   }
 
   function renderGameSummary() {
@@ -577,7 +590,7 @@
       var myRow = res.ranking.filter(function (x) { return x.seat === you.seat; })[0];
       o.ranking = res.ranking.map(function (x) {
         var s = r.seats[x.seat];
-        return { rank: x.rank, name: x.name, avatar: s ? s.avatar : 0, me: x.seat === you.seat && you.role === 'player', info: x.solved ? t('race.solvedN', { n: x.solvedN }) : x.out ? t('race.out.' + x.out) : t('race.best', { a: x.bestA, b: x.bestB }) };
+        return { rank: x.rank, name: x.name, avatar: s ? s.avatar : 0, me: x.seat === you.seat && you.role === 'player', info: x.solved ? t('race.solvedN', { n: x.solvedN }) + (x.solvedAt && g.startedAt ? '・' + K.fmtTime(x.solvedAt - g.startedAt) : '') : x.out ? t('race.out.' + x.out) : t('race.best', { a: x.bestA, b: x.bestB }) };
       });
       if (you.role === 'player' && myRow) {
         o.kind = myRow.rank === 1 && myRow.solved ? 'win' : 'rank';
@@ -607,6 +620,9 @@
       res.secrets.forEach(function (sec, i) { if (sec) o.answers.push({ label: t('res.secretOf', { n: res.names[i] || '' }), code: sec }); });
       o.lines.push(res.names.map(function (n, i) { return t('res.countOf', { n: n || '', c: res.counts[i] }); }).join('・'));
     }
+    /* 用時：競速裡自己猜中就算自己的時間，其他情況算整局 */
+    var sw = stopwatchOf(r, g);
+    if (sw && sw.ms != null) o.lines.push(t('res.time', { t: K.fmtTime(sw.ms) }));
     if (o.kind === 'win') root.Sound.play('win'); else if (o.kind === 'lose') root.Sound.play('lose');
     o.again = you.role === 'player'
       ? { label: t('res.againReady'), onClick: function () { if (!r.you.host) Net.send({ type: 'ready', value: true }); wantGame = false; app().show('room'); } }

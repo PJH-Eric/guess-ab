@@ -358,6 +358,12 @@ svg.av-mini { width: 28px; height: 28px; }
 .bubble { flex: 1 1 140px; min-width: 0; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 16px; padding: 7px 12px; font-weight: 800; font-size: .95rem; position: relative; overflow-wrap: break-word; }
 .bubble::before { content: ""; position: absolute; left: -9px; top: 50%; width: 14px; height: 14px; background: var(--paper); border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: translateY(-50%) rotate(45deg); }
 .counter { flex: none; margin-left: auto; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 12px; font-weight: 900; font-size: .9rem; white-space: nowrap; }
+.safe-stats { flex: none; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.safe-stats .counter { margin-left: 0; }
+.stopwatch { display: inline-flex; align-items: center; gap: 4px; }
+.stopwatch[hidden] { display: none; }
+.stopwatch svg.ico { width: 15px; height: 15px; flex: none; }
+.stopwatch .sw-num { min-width: 3.6em; text-align: right; }
 .timer-row { display: flex; align-items: center; gap: 8px; margin: 8px 4px 0; position: relative; z-index: 1; }
 .timer-row[hidden] { display: none; }
 .timer { flex: 1 1 auto; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, .55); border: 2px solid var(--ink); overflow: hidden; }
@@ -891,6 +897,8 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
   .safe-top { min-height: 34px; }
   .bubble { display: none; }
   .safe-top .counter { margin-left: auto; }
+  .safe-stats { flex-direction: row; align-items: center; }
+  .safe-stats .counter { margin-left: 0; }
   .mascot { width: 34px; height: 34px; }
   .slots { margin-top: 4px; flex: 1; align-items: center; gap: 6px; }
   .wheel-ghost { display: none; }
