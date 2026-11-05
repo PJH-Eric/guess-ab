@@ -539,7 +539,9 @@
     if (r.mode === 'race' && r.status === 'playing') {
       /* 有人猜中後改顯示 10 秒收尾倒數 */
       var left = (g.finishAt || g.endsAt) - now();
-      html += '<p class="race-clock' + (g.finishAt || left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + K.clockHtml('until', Date.now() + left) + '<span>' + esc(t(g.finishAt ? 'race.finishLeft' : 'race.left')) + '</span></p>';
+      /* 開局倒數期間：剩餘時間停在完整的總時長，倒數完才開始走 */
+      var waiting = g.startedAt && now() < g.startedAt;
+      html += '<p class="race-clock' + (g.finishAt || left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + (waiting ? '<b class="clk">' + K.fmtTime(g.endsAt - g.startedAt) + '</b>' : K.clockHtml('until', Date.now() + left)) + '<span>' + esc(t(g.finishAt ? 'race.finishLeft' : 'race.left')) + '</span></p>';
     }
     if (r.mode === 'race') {
       html += '<ul class="race-list">' + g.players.map(function (p, i) {

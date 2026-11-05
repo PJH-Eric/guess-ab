@@ -596,11 +596,15 @@
     if (!deadline) { el.hidden = true; num.removeAttribute('data-until'); el.removeAttribute('aria-label'); return; }
     el.hidden = false;
     var local = deadline - (offset || 0);      // 換成本機時間
-    num.setAttribute('data-until', String(local));
     var bar = el.querySelector('.timer i');
     var lastSec = -1, lastTxt = '', lastLow = null;
     function step() {
-      var left = local - Date.now();
+      var raw = local - Date.now();
+      /* 開局倒數期間停在完整時間，倒數完才開始走；
+         共用時鐘（data-until）只在開始後才掛上，不然它會照真實時間覆寫數字 */
+      if (raw > total) num.removeAttribute('data-until');
+      else if (!num.hasAttribute('data-until')) num.setAttribute('data-until', String(local));
+      var left = Math.min(total, raw);
       var f = Math.max(0, Math.min(1, left / total));
       bar.style.transform = 'scaleX(' + f.toFixed(4) + ')';
       var txt = K.fmtTime(left);
