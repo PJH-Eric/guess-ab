@@ -600,10 +600,10 @@
     var lastSec = -1, lastTxt = '', lastLow = null;
     function step() {
       var raw = local - Date.now();
-      /* 開局倒數期間停在完整時間，倒數完才開始走；
-         共用時鐘（data-until）只在開始後才掛上，不然它會照真實時間覆寫數字 */
-      if (raw > total) num.removeAttribute('data-until');
-      else if (!num.hasAttribute('data-until')) num.setAttribute('data-until', String(local));
+      /* 開局倒數期間停在完整時間，倒數完才開始走。
+         數字只由這個 step 寫入（不掛 data-until）：共用時鐘每 10ms 也會寫同一個節點，
+         兩邊各自取 Date.now() 會差 1 個百分秒，剩 10 秒內變色時就會來回跳動而閃爍 */
+      num.removeAttribute('data-until');
       var left = Math.min(total, raw);
       var f = Math.max(0, Math.min(1, left / total));
       bar.style.transform = 'scaleX(' + f.toFixed(4) + ')';
