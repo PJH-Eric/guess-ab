@@ -982,3 +982,12 @@ body.result-open .toasts { top: calc(var(--top-h) + var(--safe-t) + 6px); bottom
 .lv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @container (min-width: 440px) { .lv-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @container (min-width: 940px) { .lv-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+
+/* ---------- 大廳聊天室：套用密碼鎖配色 ---------- */
+body .lc-root {
+  --lc-accent: var(--mint-d); --lc-accent-ink: #fff;
+  --lc-panel-bg: var(--paper); --lc-panel-solid: var(--paper);
+  --lc-ink: var(--ink); --lc-muted: var(--ink-soft); --lc-line: rgba(38, 64, 94, .16);
+  --lc-field-bg: #fff; --lc-sys-bg: var(--bg2); --lc-name: var(--mint-d);
+  --lc-z: 900;
+}

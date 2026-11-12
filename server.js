@@ -48,6 +48,16 @@ const io = {
 
 const hub = createHub(io);
 
+/* 大廳聊天室（與房間聊天分開；最近 50 則只存在記憶體） */
+const lobbyChat = require('./lib/lobby-chat.js').createHub({ send: (id, msg) => io.send(id, msg), key: 'type' });
+/** 開房／快速加入後，如果是剛開的新房就在大廳聊天公告 */
+function announceNewRoom(person, before) {
+  const room = hub.roomFor(person.id);
+  if (room && room.id !== before && room.hostId === person.id && room.seats.filter(Boolean).length === 1) {
+    lobbyChat.roomOpened({ code: room.id, host: room.seats[0] ? room.seats[0].name : person.name });
+  }
+}
+
 function lobbyIds() { const out = []; for (const [id, it] of people) if (!it.person.roomId && it.person.ready) out.push(id); return out; }
 function sendLobby(pid) { io.send(pid, { type: 'lobby', rooms: hub.listRooms(), online: Array.from(people.values()).filter(it => it.person.ready).length }); }
 function broadcastLobby() { for (const id of lobbyIds()) sendLobby(id); }
@@ -69,8 +79,9 @@ function handle(person, msg) {
     case 'hb': return;
     case 'name': person.name = cleanName(msg.name, person.name); return;
     case 'lobby': sendLobby(person.id); return;
-    case 'create': hub.create(person, msg); sync(person); return;
-    case 'quick': hub.quick(person, msg); sync(person); return;
+    case 'create': { const before = person.roomId; hub.create(person, msg); sync(person); announceNewRoom(person, before); return; }
+    case 'quick': { const before = person.roomId; hub.quick(person, msg); sync(person); announceNewRoom(person, before); return; }
+    case 'lobbychat': lobbyChat.handle(person.id, msg); return;
     case 'join': hub.join(person, msg); sync(person); return;
     case 'leave': hub.leave(person.id); io.send(person.id, { type: 'left' }); sendLobby(person.id); return;
     case 'sit': hub.sit(person); sync(person); return;
@@ -160,6 +171,7 @@ ws.attach(server, {
       if (!it || it.socket !== socket) return;           // 已經被新連線接手，不能把新連線判成斷線
       people.delete(person.id);
       if (!person.ready) return;
+      lobbyChat.drop(person.id);
       hub.markDisconnected(person.id);
       broadcastLobby();
     });

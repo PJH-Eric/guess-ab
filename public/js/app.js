@@ -345,9 +345,10 @@
       '<div class="set-group"><h3>' + esc(t('set.view')) + '</h3>' +
       setRow('set-rm', t('set.reduce'), K.switchHtml('set-rm', s('reduceMotion'), t('set.reduce'))) +
       setRow('set-ca', t('set.assist'), K.switchHtml('set-ca', s('colorAssist'), t('set.assist')), t('set.assistHelp')) +
+      (root.LobbyChatUI ? setRow('set-lobbychat', root.LobbyChatUI.text('set'), K.switchHtml('set-lobbychat', root.LobbyChatUI.isEnabled(), root.LobbyChatUI.text('set')), root.LobbyChatUI.text('setSub')) : '') +
       '<div class="set-row col"><span>' + esc(t('set.lang')) + '</span>' + K.segHtml('set-lang', [{ value: 'zh-Hant', label: '繁體中文' }, { value: 'zh-Hans', label: '简体中文' }, { value: 'en', label: 'English' }], root.I18N.lang, t('set.lang')) + '</div></div>';
     var m = K.Modal({ title: t('set.title'), body: body, cls: 'settings-modal', actions: [
-      { label: t('set.reset'), kind: 'ghost', icon: 'refresh', close: false, onClick: function (api) { Store.resetSettings(); api.close(); applySettings(); openSettings(); } },
+      { label: t('set.reset'), kind: 'ghost', icon: 'refresh', close: false, onClick: function (api) { Store.resetSettings(); if (root.LobbyChatUI) root.LobbyChatUI.setEnabled(true); api.close(); applySettings(); openSettings(); } },
       { label: t('common.done'), kind: 'primary', icon: 'check' }] });
     K.bindSwitch($('set-music'), function (v) { Store.set('musicOn', v); root.Sound.refresh(); });
     K.bindStepper($('set-musicVol'), function () { return Math.round(Store.get('musicVol') * 10); }, function (v) { Store.set('musicVol', v / 10); root.Sound.refresh(); }, function () { return 0; }, function () { return 10; });
@@ -360,6 +361,7 @@
     K.bindSeg($('set-keys'), function (v) { Store.set('showKeys', v); });
     K.bindSwitch($('set-rm'), function (v) { Store.set('reduceMotion', v); applySettings(); });
     K.bindSwitch($('set-ca'), function (v) { Store.set('colorAssist', v); applySettings(); });
+    if (root.LobbyChatUI) K.bindSwitch($('set-lobbychat'), function (v) { root.LobbyChatUI.setEnabled(v); });
     K.bindSeg($('set-lang'), function (v) { askLang(v, function () { m.close(); }); });
     fillIcons(body);
   }

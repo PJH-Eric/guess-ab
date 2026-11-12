@@ -25,6 +25,29 @@
   function app() { return root.App; }
   function myName() { return root.Store.get('nickname') || ''; }
 
+  /* ---------- 大廳聊天室（左下氣泡） ---------- */
+  function initLobbyChat() {
+    if (!root.LobbyChat || root.LobbyChatUI) return;
+    var chat = root.LobbyChatUI = root.LobbyChat.create({
+      game: 'guess-ab',
+      watch: '#scr-lobby',
+      getName: function () { var nm = $('lb-name'); return (nm && nm.value.trim()) || myName(); },
+      setName: function (n) { root.Store.set('nickname', n.slice(0, 16)); var nm = $('lb-name'); if (nm) nm.value = n.slice(0, 16); Net.send({ type: 'name', name: n }); },
+      join: function (name) { Net.send({ type: 'lobbychat', op: 'join', name: name }); },
+      leave: function () { Net.send({ type: 'lobbychat', op: 'leave' }); },
+      send: function (text, name) { Net.send({ type: 'lobbychat', op: 'send', text: text, name: name }); },
+      joinRoom: function (code) { saveName(); Net.send({ type: 'join', roomId: code, name: myName(), avatar: avatarSel, want: 'player' }); }
+    });
+    chat.setConnected(Net.status === 'open');
+    Net.on('status', function () { chat.setConnected(Net.status === 'open'); });
+    Net.on('lobbychat', function (m) {
+      if (m.op === 'history') chat.history(m.history, m.online);
+      else if (m.op === 'msg') chat.add(m.msg);
+      else if (m.op === 'online') chat.online(m.online);
+      else if (m.op === 'error') chat.error(m.code);
+    });
+  }
+
   /* ---------- 進出大廳 ---------- */
   function enterLobby(inv) {
     if (inv) invite = inv;
@@ -710,6 +733,7 @@
 
   function init() {
     K = root.Kit; G = root.GameView; Net = root.Net;
+    initLobbyChat();
     if (root.ResizeObserver) new root.ResizeObserver(fitSeats).observe($('scr-room'));
     Net.on('room', onRoom);
     Net.on('lobby', function (m) { rooms = m.rooms || []; if (typeof m.online === 'number') online = m.online; if (!room) forgetRoom();   // 伺服器說你不在房間裡（例如超過 30 秒），就不再自動回房
