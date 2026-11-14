@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/verify.js && node tests/online-check.js",
+    "test": "node tests/lobby-chat.cjs && node tests/verify.js && node tests/online-check.js",
     "verify": "node tests/verify.js",
     "test:online": "node tests/online-check.js",
     "gen:spec-table": "node scripts/gen-spec-table.js",

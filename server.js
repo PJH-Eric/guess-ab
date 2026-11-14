@@ -48,7 +48,7 @@ const io = {
 
 const hub = createHub(io);
 
-/* 大廳聊天室（與房間聊天分開；最近 50 則只存在記憶體） */
+/* 大廳聊天室（與房間聊天分開；即時傳送訊息，不載入歷史訊息） */
 const lobbyChat = require('./lib/lobby-chat.js').createHub({ send: (id, msg) => io.send(id, msg), key: 'type' });
 /** 開房／快速加入後，如果是剛開的新房就在大廳聊天公告 */
 function announceNewRoom(person, before) {
