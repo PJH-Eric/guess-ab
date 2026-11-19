@@ -39,8 +39,13 @@
       this.setStatus('waking');
       while (this.wantOn) {
         try {
-          const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 6000);
-          const r = await fetch(root.Config.serverUrl + '/health', { signal: ctl.signal, cache: 'no-store' }); clearTimeout(to);
+          const base = await (root.GameBackend?.select(root.Config.serverUrl) ?? root.Config.serverUrl);
+          if (!this.wantOn) return;
+          const ctl = new AbortController();
+          const to = setTimeout(() => ctl.abort(), 6000);
+          let r;
+          try { r = await fetch(base + '/health', { signal: ctl.signal, cache: 'no-store' }); }
+          finally { clearTimeout(to); }
           if (r.ok) break;
         } catch (e) { /* 還沒醒 */ }
         if (!this.wantOn) return;
@@ -55,7 +60,7 @@
     open() {
       this.setStatus('connecting');
       let ws;
-      try { ws = new WebSocket(this.wsUrl); } catch (e) { this.scheduleRetry(); return; }
+      try { ws = root.GameBackend?.createSocket(this.wsUrl) ?? new WebSocket(this.wsUrl); } catch (e) { this.scheduleRetry(); return; }
       this.ws = ws; this.welcomed = false;
       ws.onopen = () => {
         this.lastMsgAt = Date.now();

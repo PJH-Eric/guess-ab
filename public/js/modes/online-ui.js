@@ -240,7 +240,7 @@
     var q = '?room=' + encodeURIComponent(room.id) + '&invite=' + encodeURIComponent(room.invite.token);
     var sv = new URLSearchParams(root.location.search).get('server');
     if (sv) q += '&server=' + encodeURIComponent(sv);
-    return base + q;
+    return root.GameBackend?.pinInvite(base + q) ?? (base + q);
   }
   function renderRoom() {
     if (!room) { app().show('lobby'); return; }
