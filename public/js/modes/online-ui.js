@@ -141,7 +141,14 @@
     saveName();
     Net.send({ type: 'join', roomId: invite.room, token: invite.token, name: myName(), avatar: avatarSel, want: want });
   }
-  function clearInviteUrl() { try { root.history.replaceState(root.history.state, '', root.location.pathname); } catch (e) { /* 忽略 */ } }
+  function clearInviteUrl() {
+    try {
+      var url = new URL(root.location.href);
+      url.searchParams.delete('room');
+      url.searchParams.delete('invite');
+      root.history.replaceState(root.history.state, '', url);
+    } catch (e) { /* 忽略 */ }
+  }
 
   /* ---------- 建立房間 ---------- */
   function csMenuItems() {
@@ -674,8 +681,14 @@
   /* ---------- 伺服器訊息 ---------- */
   /* 對局中重新整理：同一分頁記住房號，回來時自動連線回原席位（伺服器保留 30 秒） */
   var ROOM_KEY = 'guess-ab:room';
-  function rememberRoom(id) { try { sessionStorage.setItem(ROOM_KEY, id); } catch (e) { /* 忽略 */ } }
-  function forgetRoom() { try { sessionStorage.removeItem(ROOM_KEY); } catch (e) { /* 忽略 */ } }
+  function rememberRoom(id) {
+    try { sessionStorage.setItem(ROOM_KEY, id); } catch (e) { /* 忽略 */ }
+    root.GameBackend?.rememberRoom?.();
+  }
+  function forgetRoom() {
+    try { sessionStorage.removeItem(ROOM_KEY); } catch (e) { /* 忽略 */ }
+    root.GameBackend?.forgetRoom?.();
+  }
   function onRoom(m) {
     if (m.room && m.room.id) rememberRoom(m.room.id);
     var prev = room;
