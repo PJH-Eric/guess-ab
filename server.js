@@ -46,7 +46,13 @@ const io = {
   cleared(personId) { const it = people.get(personId); if (it) { it.person.roomId = null; it.person.role = null; } }
 };
 
-const hub = createHub(io);
+const roomStore = process.env.GUESS_ROOM_DB_PATH
+  ? require('./lib/room-store.js').openRoomStore(process.env.GUESS_ROOM_DB_PATH)
+  : null;
+const hub = createHub(io, { store: roomStore, onStorageError() {
+  console.error('[guess-ab] 房間寫入失敗，停止服務並等待重新啟動');
+  process.exit(1);
+} });
 
 /* 大廳聊天室（與房間聊天分開；即時傳送訊息，不載入歷史訊息） */
 const lobbyChat = require('./lib/lobby-chat.js').createHub({ send: (id, msg) => io.send(id, msg), key: 'type' });

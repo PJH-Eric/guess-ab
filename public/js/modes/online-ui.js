@@ -419,7 +419,7 @@
   function sideOpened() { unread = 0; badge(); }
 
   /* ---------- 對局畫面 ---------- */
-  function now() { return Date.now() + clockOffset; }
+  function now() { return room?.recovering ?? (Date.now() + clockOffset); }
   function showGame() {
     if (app().screen !== 'game') app().show('game', { focus: false });
     mountSide('game');
@@ -528,17 +528,18 @@
       }
     }
     /* 開局倒數：伺服器的 startedAt 之前大家都不能動；時間到再同步一次畫面 */
-    if (r.status === 'playing' && g.startedAt && now() < g.startedAt) {
+    if (r.recovering == null && r.status === 'playing' && g.startedAt && now() < g.startedAt) {
       canInput = false;
       var cdKey = r.id + ':' + g.no;
       G.countdown(g.startedAt - clockOffset, function () { if (room && room.game && room.id + ':' + room.game.no === cdKey) syncGame(); });
     }
+    if (r.recovering != null) { canInput = false; why = t('why.reconnecting'); }
     G.setTabs(tabs, true);
     G.setInput(canInput, you.role === 'spectator' && r.status !== 'finished' ? '' : why);
     if (you.role === 'spectator' && r.status !== 'finished') watchBoard(r, g, spec); else G.setWatch(null);
     G.setCounter(counter);
-    G.setTimer(deadline, total, clockOffset);
-    G.setStopwatch(stopwatchOf(r, g));
+    G.setTimer(r.recovering == null ? deadline : 0, total, clockOffset);
+    G.setStopwatch(r.recovering == null ? stopwatchOf(r, g) : { ms: Math.max(0, now() - g.startedAt) });
     renderGameSummary();
   }
 
@@ -564,7 +565,8 @@
       var left = (g.finishAt || g.endsAt) - now();
       /* 開局倒數期間：剩餘時間停在完整的總時長，倒數完才開始走 */
       var waiting = g.startedAt && now() < g.startedAt;
-      html += '<p class="race-clock' + (g.finishAt || left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + (waiting ? '<b class="clk">' + K.fmtTime(g.endsAt - g.startedAt) + '</b>' : K.clockHtml('until', Date.now() + left)) + '<span>' + esc(t(g.finishAt ? 'race.finishLeft' : 'race.left')) + '</span></p>';
+      var clock = waiting || r.recovering != null ? '<b class="clk">' + K.fmtTime(waiting ? g.endsAt - g.startedAt : Math.max(0, left)) + '</b>' : K.clockHtml('until', Date.now() + left);
+      html += '<p class="race-clock' + (g.finishAt || left <= 30000 ? ' low' : '') + '">' + K.icon('timer') + clock + '<span>' + esc(t(g.finishAt ? 'race.finishLeft' : 'race.left')) + '</span></p>';
     }
     if (r.mode === 'race') {
       html += '<ul class="race-list">' + g.players.map(function (p, i) {
