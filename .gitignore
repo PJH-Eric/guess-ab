@@ -24,3 +24,7 @@ tests/shots/
 
 # 開發用暫存（美術對照表、截圖）
 /tmp/
+
+/cloudflare/node_modules/
+
+/cloudflare/dist/
