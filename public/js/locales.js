@@ -319,9 +319,9 @@
   I.add('en', EN);
   /* 伺服器暫停提示（server-outage.js 用）：[標題, 內容, 按鈕] */
   root.ServerOutageMessages = {
-    'zh-Hant': ['線上伺服器暫時休息中', '這個月的免費伺服器額度可能用完了，預計 {date} 月 1 日恢復。單機模式照樣可以玩！', '知道了'],
-    'zh-Hans': ['线上服务器暂时休息中', '这个月的免费服务器额度可能用完了，预计 {date} 月 1 日恢复。单机模式照样可以玩！', '知道了'],
-    en: ['The online server is resting', 'This month\'s free server quota may be used up. It should be back on {date}. Solo play still works!', 'Got it']
+    'zh-Hant': ['目前伺服器過載休息中', '歡迎贊助升級', '知道了'],
+    'zh-Hans': ['目前服务器过载休息中', '欢迎赞助升级', '知道了'],
+    en: ['The server is overloaded and resting', 'Sponsorships to help us upgrade are welcome', 'Got it']
   };
   root.LOCALE_HANT = HANT;
 })(typeof self !== 'undefined' ? self : this);
